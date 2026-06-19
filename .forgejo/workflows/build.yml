@@ -1,0 +1,49 @@
+name: Build Cubox (Linux)
+
+# Builds the Linux artifacts of Cubox (the runnable .jar and the
+# self-contained .sh launcher) on every push / PR to main, and on demand.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: docker
+    container:
+      image: eclipse-temurin:21-jdk
+    steps:
+      # actions/checkout needs git; the JDK image does not ship it.
+      - name: Install git
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq git
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Linux artifacts
+        env:
+          JAVA_TOOL_OPTIONS: "-XX:-UsePerfData"
+          VERSION_TYPE: "unofficial"
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :HMCL:makeExecutables --no-daemon --stacktrace
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p dist
+          cp HMCL/build/libs/Cubox-*.jar dist/ 2>/dev/null || true
+          cp HMCL/build/libs/Cubox-*.sh  dist/ 2>/dev/null || true
+          echo "=== dist ==="
+          ls -lh dist
+
+      - name: Upload Cubox (Linux)
+        uses: actions/upload-artifact@v3
+        with:
+          name: cubox-linux
+          path: dist/*
+          if-no-files-found: error
