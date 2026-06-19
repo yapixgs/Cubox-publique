@@ -41,10 +41,12 @@ import java.util.Objects;
 @JsonSerializable
 public record ThemeColor(@NotNull String name, @NotNull Color color) {
 
-    public static final ThemeColor DEFAULT = new ThemeColor("blue", Color.web("#5C6BC0"));
+    // Cubox: accent par défaut = cyan néon du logo. Ambre/or = couleur du mode PO.
+    public static final ThemeColor DEFAULT = new ThemeColor("cubox_cyan", Color.web("#2FA8F0"));
 
     public static final List<ThemeColor> STANDARD_COLORS = List.of(
             DEFAULT,
+            new ThemeColor("cubox_amber", Color.web("#F6A623")),
             new ThemeColor("darker_blue", Color.web("#283593")),
             new ThemeColor("green", Color.web("#43A047")),
             new ThemeColor("orange", Color.web("#E67E22")),
