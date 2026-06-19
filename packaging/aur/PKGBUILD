@@ -1,0 +1,32 @@
+# Maintainer: Yapix
+pkgname=cubox
+pkgver=3.0
+pkgrel=1
+pkgdesc="Cubox — launcher Minecraft hors-ligne, fork rebrandé de HMCL"
+arch=('any')
+url="https://forge.oxitablock.com/Yapix839/Cubox"
+license=('GPL-3.0-or-later')
+depends=('java-runtime>=11')
+makedepends=('jdk-openjdk' 'git')
+source=("git+https://forge.oxitablock.com/Yapix839/Cubox.git#branch=main")
+sha256sums=('SKIP')
+
+build() {
+  cd "$srcdir/Cubox"
+  chmod +x ./gradlew
+  # Build local : Gradle télécharge ses dépendances depuis Internet (machine Arch = OK)
+  JAVA_TOOL_OPTIONS="-XX:-UsePerfData" VERSION_TYPE="unofficial" \
+    ./gradlew :HMCL:makeExecutables --no-daemon --stacktrace
+}
+
+package() {
+  cd "$srcdir/Cubox"
+  local jar
+  jar=$(ls HMCL/build/libs/Cubox-*.jar | head -n1)
+
+  install -Dm644 "$jar" "$pkgdir/usr/share/java/cubox/Cubox.jar"
+  install -Dm755 packaging/aur/cubox.sh       "$pkgdir/usr/bin/cubox"
+  install -Dm644 packaging/aur/cubox.desktop  "$pkgdir/usr/share/applications/cubox.desktop"
+  install -Dm644 HMCL/image/hmcl.png          "$pkgdir/usr/share/pixmaps/cubox.png"
+  install -Dm644 LICENSE                       "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
