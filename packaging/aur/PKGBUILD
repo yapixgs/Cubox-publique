@@ -27,6 +27,6 @@ package() {
   install -Dm644 "$jar" "$pkgdir/usr/share/java/cubox/Cubox.jar"
   install -Dm755 packaging/aur/cubox.sh       "$pkgdir/usr/bin/cubox"
   install -Dm644 packaging/aur/cubox.desktop  "$pkgdir/usr/share/applications/cubox.desktop"
-  install -Dm644 HMCL/image/hmcl.png          "$pkgdir/usr/share/pixmaps/cubox.png"
+  install -Dm644 HMCL/image/cubox.png          "$pkgdir/usr/share/pixmaps/cubox.png"
   install -Dm644 LICENSE                       "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }
