@@ -1,0 +1,34 @@
+{
+  "_comment": "Mods mis en avant dans le store Cubox. Source: Modrinth. UI à intégrer (voir ROADMAP).",
+  "categories": [
+    {
+      "id": "redstone",
+      "label": "Redstone & technique",
+      "description": "Outils pour concevoir, déboguer et optimiser tes circuits redstone.",
+      "mods": [
+        { "name": "Carpet",    "modrinth": "carpet",    "why": "Contrôle des ticks, infos de redstone, mode créatif technique." },
+        { "name": "MiniHUD",   "modrinth": "minihud",   "why": "Affiche la puissance redstone, les block updates, les hitbox." },
+        { "name": "Tweakeroo", "modrinth": "tweakeroo", "why": "Placement précis, raccourcis de build, aides techniques." }
+      ]
+    },
+    {
+      "id": "xray",
+      "label": "X-Ray",
+      "description": "Voir les minerais à travers les blocs (solo / petits serveurs FO).",
+      "note": "⚠️ Bannissable sur les serveurs premium — réservé au mode CuboxFO / solo.",
+      "mods": [
+        { "name": "Xray Vision+", "modrinth": "xray-vision+", "why": "X-Ray configurable, surbrillance des minerais." }
+      ]
+    },
+    {
+      "id": "structures",
+      "label": "Copier-coller de structures",
+      "description": "Copier, coller, sauvegarder et importer des constructions.",
+      "mods": [
+        { "name": "Litematica", "modrinth": "litematica", "why": "Schématiques: copier/coller/sauver des structures, guide de pose bloc par bloc." },
+        { "name": "WorldEdit",  "modrinth": "worldedit",  "why": "Édition de masse: copier/coller/remplir de grandes zones." },
+        { "name": "MaLiLib",    "modrinth": "malilib",    "why": "Bibliothèque requise par Litematica/MiniHUD/Tweakeroo." }
+      ]
+    }
+  ]
+}
