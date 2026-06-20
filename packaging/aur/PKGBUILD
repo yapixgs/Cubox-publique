@@ -7,14 +7,18 @@ arch=('any')
 url="https://forge.oxitablock.com/Yapix839/Cubox"
 license=('GPL-3.0-or-later')
 depends=('java-runtime>=11')
-makedepends=('jdk-openjdk' 'git')
+makedepends=('jdk21-openjdk' 'git')
 source=("git+https://forge.oxitablock.com/Yapix839/Cubox.git#branch=main")
 sha256sums=('SKIP')
 
 build() {
   cd "$srcdir/Cubox"
   chmod +x ./gradlew
+  # Force JDK 21 (version testée) plutôt que le JDK système éventuellement trop récent
+  export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
   # Build local : Gradle télécharge ses dépendances depuis Internet (machine Arch = OK)
+  JAVA_TOOL_OPTIONS="-XX:-UsePerfData" VERSION_TYPE="unofficial" \
+    "$JAVA_HOME/bin/java" -version
   JAVA_TOOL_OPTIONS="-XX:-UsePerfData" VERSION_TYPE="unofficial" \
     ./gradlew :HMCL:makeExecutables --no-daemon --stacktrace
 }
@@ -27,6 +31,6 @@ package() {
   install -Dm644 "$jar" "$pkgdir/usr/share/java/cubox/Cubox.jar"
   install -Dm755 packaging/aur/cubox.sh       "$pkgdir/usr/bin/cubox"
   install -Dm644 packaging/aur/cubox.desktop  "$pkgdir/usr/share/applications/cubox.desktop"
-  install -Dm644 HMCL/image/hmcl.png          "$pkgdir/usr/share/pixmaps/cubox.png"
+  install -Dm644 HMCL/image/cubox.png          "$pkgdir/usr/share/pixmaps/cubox.png"
   install -Dm644 LICENSE                       "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

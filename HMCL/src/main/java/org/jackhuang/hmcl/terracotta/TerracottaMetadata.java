@@ -110,7 +110,8 @@ public final class TerracottaMetadata {
     public static final AbstractTerracottaProvider PROVIDER;
     public static final String PACKAGE_NAME;
     public static final List<Link> PACKAGE_LINKS;
-    public static final String FEEDBACK_LINK = NetworkUtils.withQuery("https://docs.hmcl.net/multiplayer/feedback.html", Map.of(
+    // Cubox: feedback repointé vers les issues de notre forge
+    public static final String FEEDBACK_LINK = NetworkUtils.withQuery("https://forge.oxitablock.com/Yapix839/Cubox/issues", Map.of(
             "v", "v1",
             "launcher_version", Metadata.VERSION
     ));
