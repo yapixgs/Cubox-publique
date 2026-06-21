@@ -190,6 +190,7 @@ public class RootPage extends DecoratorAnimatedPage implements DecoratorPage {
             AdvancedListItem gameItem = new AdvancedListItem();
             gameItem.setLeftIcon(SVG.FORMAT_LIST_BULLETED);
             gameItem.setTitle(i18n("version.manage"));
+            gameItem.setSubtitle(i18n("cubox.nav.instances.desc"));
             gameItem.setOnAction(e -> Controllers.navigate(Controllers.getGameListPage()));
             FXUtils.onSecondaryButtonClicked(gameItem, () -> showGameListPopupMenu(gameItem));
 
@@ -197,6 +198,7 @@ public class RootPage extends DecoratorAnimatedPage implements DecoratorPage {
             AdvancedListItem downloadItem = new AdvancedListItem();
             downloadItem.setLeftIcon(SVG.DOWNLOAD);
             downloadItem.setTitle(i18n("download"));
+            downloadItem.setSubtitle(i18n("cubox.nav.download.desc"));
             downloadItem.setOnAction(e -> {
                 Controllers.getDownloadPage().showGameDownloads();
                 Controllers.navigate(Controllers.getDownloadPage());
@@ -209,6 +211,7 @@ public class RootPage extends DecoratorAnimatedPage implements DecoratorPage {
             AdvancedListItem launcherSettingsItem = new AdvancedListItem();
             launcherSettingsItem.setLeftIcon(SVG.SETTINGS);
             launcherSettingsItem.setTitle(i18n("settings"));
+            launcherSettingsItem.setSubtitle(i18n("cubox.nav.settings.desc"));
             launcherSettingsItem.setOnAction(e -> {
                 Controllers.getSettingsPage().showGameSettings(Profiles.getSelectedProfile());
                 Controllers.navigate(Controllers.getSettingsPage());
@@ -217,10 +220,11 @@ public class RootPage extends DecoratorAnimatedPage implements DecoratorPage {
                 FXUtils.prepareOnMouseEnter(launcherSettingsItem, Controllers::prepareSettingsPage);
             }
 
-            // sixth item in left sidebar
+            // sixth item in left sidebar (advanced section)
             AdvancedListItem terracottaItem = new AdvancedListItem();
             terracottaItem.setLeftIcon(SVG.GRAPH2);
             terracottaItem.setTitle(i18n("terracotta"));
+            terracottaItem.setSubtitle(i18n("cubox.nav.terracotta.desc"));
             terracottaItem.setOnAction(e -> {
                 if (TerracottaMetadata.PROVIDER != null) {
                     Controllers.navigate(Controllers.getTerracottaPage());
@@ -251,6 +255,7 @@ public class RootPage extends DecoratorAnimatedPage implements DecoratorPage {
                     .add(downloadItem)
                     .startCategory(i18n("settings.launcher.general").toUpperCase(Locale.ROOT))
                     .add(launcherSettingsItem)
+                    .startCategory(i18n("cubox.advanced").toUpperCase(Locale.ROOT))
                     .add(terracottaItem)
                     .addNavigationDrawerItem(i18n("contact.chat"), SVG.CHAT, () -> {
                         Controllers.getSettingsPage().showFeedback();
