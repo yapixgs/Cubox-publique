@@ -462,6 +462,13 @@ public final class Controllers {
             Controllers.dialog(agreementPane);
         }
 
+        // Cubox: on first run, ask the user to pick a mode (CuboxFO / CuboxPO).
+        // Selecting a mode also applies its brand accent, so the Cubox color
+        // becomes visible even if an older theme color was previously persisted.
+        if (CuboxMode.current() == null) {
+            Controllers.dialog(new CuboxModeSelectionPane(true));
+        }
+
         aprilFools:
         if (AprilFools.isEnabled()) {
             int currentYear = LocalDate.now().getYear();

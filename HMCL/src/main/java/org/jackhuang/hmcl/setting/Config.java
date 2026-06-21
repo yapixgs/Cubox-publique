@@ -336,6 +336,23 @@ public final class Config extends ObservableSetting {
         this.themeColor.set(themeColor);
     }
 
+    /// The selected Cubox usage mode ([CuboxMode], stored by name), or `null`
+    /// until the user picks one on first run.
+    @SerializedName("cuboxMode")
+    private final StringProperty cuboxMode = new SimpleStringProperty();
+
+    public StringProperty cuboxModeProperty() {
+        return cuboxMode;
+    }
+
+    public String getCuboxMode() {
+        return cuboxMode.get();
+    }
+
+    public void setCuboxMode(String cuboxMode) {
+        this.cuboxMode.set(cuboxMode);
+    }
+
     @SerializedName("fontFamily")
     private final StringProperty fontFamily = new SimpleStringProperty();
 

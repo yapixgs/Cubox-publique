@@ -18,6 +18,7 @@
 package org.jackhuang.hmcl.ui.main;
 
 import com.jfoenix.controls.JFXPopup;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.scene.layout.Region;
 import org.jackhuang.hmcl.Metadata;
@@ -27,12 +28,14 @@ import org.jackhuang.hmcl.game.HMCLGameRepository;
 import org.jackhuang.hmcl.game.ModpackHelper;
 import org.jackhuang.hmcl.game.Version;
 import org.jackhuang.hmcl.setting.Accounts;
+import org.jackhuang.hmcl.setting.CuboxMode;
 import org.jackhuang.hmcl.setting.Profile;
 import org.jackhuang.hmcl.setting.Profiles;
 import org.jackhuang.hmcl.task.Schedulers;
 import org.jackhuang.hmcl.task.Task;
 import org.jackhuang.hmcl.terracotta.TerracottaMetadata;
 import org.jackhuang.hmcl.ui.Controllers;
+import org.jackhuang.hmcl.ui.CuboxModeSelectionPane;
 import org.jackhuang.hmcl.ui.FXUtils;
 import org.jackhuang.hmcl.ui.SVG;
 import org.jackhuang.hmcl.ui.account.AccountAdvancedListItem;
@@ -66,6 +69,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
+import static org.jackhuang.hmcl.setting.ConfigHolder.config;
 import static org.jackhuang.hmcl.ui.FXUtils.runInFX;
 import static org.jackhuang.hmcl.util.i18n.I18n.i18n;
 import static org.jackhuang.hmcl.util.logging.Logger.LOG;
@@ -152,6 +156,16 @@ public class RootPage extends DecoratorAnimatedPage implements DecoratorPage {
             FXUtils.onSecondaryButtonClicked(accountListItem, () -> AccountListPopupMenu.show(accountListItem, JFXPopup.PopupVPosition.TOP, JFXPopup.PopupHPosition.LEFT, accountListItem.getWidth(), 0));
             accountListItem.accountProperty().bind(Accounts.selectedAccountProperty());
 
+            // Cubox mode switcher (CuboxFO offline / CuboxPO online)
+            AdvancedListItem cuboxModeItem = new AdvancedListItem();
+            cuboxModeItem.setLeftIcon(SVG.PUBLIC);
+            cuboxModeItem.setTitle(i18n("cubox.mode"));
+            cuboxModeItem.subtitleProperty().bind(Bindings.createStringBinding(() -> {
+                CuboxMode mode = CuboxMode.fromName(config().getCuboxMode());
+                return mode != null ? i18n(mode.getDisplayKey()) : i18n("cubox.mode.none");
+            }, config().cuboxModeProperty()));
+            cuboxModeItem.setOnAction(e -> Controllers.dialog(new CuboxModeSelectionPane(false)));
+
             // second item in left sidebar
             GameAdvancedListItem gameListItem = new GameAdvancedListItem();
             gameListItem.setOnAction(e -> {
@@ -230,6 +244,7 @@ public class RootPage extends DecoratorAnimatedPage implements DecoratorPage {
             AdvancedListBox sideBar = new AdvancedListBox()
                     .startCategory(i18n("account").toUpperCase(Locale.ROOT))
                     .add(accountListItem)
+                    .add(cuboxModeItem)
                     .startCategory(i18n("version").toUpperCase(Locale.ROOT))
                     .add(gameListItem)
                     .add(gameItem)
