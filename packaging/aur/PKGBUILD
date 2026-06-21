@@ -1,6 +1,8 @@
 # Maintainer: Yapix
 pkgname=cubox
-pkgver=3.0
+# Version dynamique : dérivée du git (voir pkgver() plus bas).
+# La valeur ci-dessous n'est qu'un placeholder, makepkg la remplace au build.
+pkgver=3.15
 pkgrel=1
 pkgdesc="Cubox — launcher Minecraft hors-ligne, fork rebrandé de HMCL"
 arch=('any')
@@ -10,6 +12,14 @@ depends=('java-runtime>=11')
 makedepends=('jdk21-openjdk' 'git')
 source=("git+https://forge.oxitablock.com/Yapix839/Cubox.git#branch=main")
 sha256sums=('SKIP')
+
+# Génère une version unique par commit (ex. 3.15.r123.g9d723c5) afin que
+# chaque nouveau commit sur main déclenche un vrai rebuild — sinon makepkg
+# réinstalle l'ancien paquet déjà compilé au lieu de recompiler le code à jour.
+pkgver() {
+  cd "$srcdir/Cubox"
+  printf "3.15.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
 
 build() {
   cd "$srcdir/Cubox"
