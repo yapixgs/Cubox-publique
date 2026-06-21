@@ -82,7 +82,13 @@ public class DecoratorSkin extends SkinBase<Decorator> {
 
         StackPane shadowContainer = new StackPane();
         shadowContainer.getStyleClass().add("body");
-        shadowContainer.setEffect(new DropShadow(BlurType.ONE_PASS_BOX, Color.rgb(0, 0, 0, 0.4), 10, 0.3, 0.0, 0.0));
+        // The full-window drop shadow is a per-repaint blur. Under software
+        // rendering (no GPU acceleration) it is very expensive and makes the
+        // whole UI sluggish, so skip it there — consistent with how animations
+        // are auto-disabled without GPU acceleration.
+        if (FXUtils.GPU_ACCELERATION_ENABLED) {
+            shadowContainer.setEffect(new DropShadow(BlurType.ONE_PASS_BOX, Color.rgb(0, 0, 0, 0.4), 10, 0.3, 0.0, 0.0));
+        }
 
         parent = new StackPane();
         Rectangle clip = new Rectangle();
