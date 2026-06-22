@@ -462,7 +462,12 @@ public final class Controllers {
             Controllers.dialog(agreementPane);
         }
 
-        // Cubox: on first run, ask the user to pick a mode (CuboxFO / CuboxPO).
+        // Cubox: apply the selected mode's account flow (offline-first; the mode
+        // decides the default account type) so a mode chosen in a previous run
+        // keeps the Microsoft sign-in window from appearing in offline mode.
+        CuboxMode.applyToSession();
+
+        // On first run, ask the user to pick a mode (CuboxFO / CuboxPO).
         // Selecting a mode also applies its brand accent, so the Cubox color
         // becomes visible even if an older theme color was previously persisted.
         if (CuboxMode.current() == null) {
