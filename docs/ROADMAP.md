@@ -16,13 +16,13 @@
 - **Multijoueur P2P** (Terracotta) — rangé dans « Avancé »
 
 **Ajouts Cubox :**
-- Modes **CuboxFO** (hors-ligne) / **CuboxPO** (en ligne) avec accent de couleur
+- **Launcher hors-ligne** (le mode en ligne « CuboxPO » est **archivé/hiberné** — voir `setting.Cubox.OFFLINE_ONLY`)
 - **UI 100 % en français**
 - **Barre latérale clarifiée** (sous-titres explicatifs + section « Avancé »)
-- **Thème / branding** Cubox (logo, accent cyan/ambre)
+- **Thème / branding** Cubox (logo, accent cyan)
 - **Fix de performance** (ombre désactivée en rendu logiciel)
 - **Dossier de données stable** (`~/.local/share/cubox`)
-- Le mode pilote le **flux de compte** (pas de fenêtre Microsoft en FO)
+- Flux de compte **hors-ligne par défaut**, option Microsoft masquée
 
 ## 🧩 À ajouter / manquant
 
@@ -34,17 +34,17 @@
 | **Navigateur CurseForge** (clé API gratuite) | ⭐⭐ | Faible |
 | **Préréglages modpacks « conseillés débutant »** | ⭐⭐ | Moyen |
 | **Ajout rapide de serveur** depuis l'accueil | ⭐⭐ | Moyen |
-| **Login Microsoft (CuboxPO)** — serveurs premium | ⭐ (avancé) | Élevé (carte + formulaire MS) → reporté |
+| ~~**Login Microsoft (CuboxPO)** — serveurs premium~~ | ⭐ (avancé) | **Archivé** (carte + formulaire MS impraticables ; nécessite de posséder le jeu) |
 
 ## 🗺️ Feuille de route jusqu'à la v1.0
 
-- **v0.5 — Fondations (FAIT)** : rebrand, modes FO/PO, FR, sidebar, perf, dossier données.
+- **v0.5 — Fondations (FAIT)** : rebrand, FR, sidebar, perf, dossier données, **passage en launcher hors-ligne** (CuboxPO archivé).
 - **v0.6 — Onboarding & confort** : guide « Premiers pas », accueil clarifié, (option) CurseForge.
 - **v0.7 — Multijoueur facile** : liste de serveurs non-premium, ajout rapide de serveur, doc « jouer en ligne ».
 - **v0.8 — Skins & perso** : skins hors-ligne (Ely.by), réglages de thème.
 - **v0.9 — Stabilisation** : tests, finitions, documentation utilisateur.
-- **v1.0 — Version stable** : tout ce qui précède, poli et documenté.
-  - *Login Microsoft = optionnel*, si tu décides d'investir carte + formulaire Microsoft.
+- **v1.0 — Version stable** : tout ce qui précède, poli et documenté. Cubox = launcher hors-ligne complet.
+  - *Mode en ligne (CuboxPO) = archivé*, réactivable plus tard si besoin (carte + formulaire Microsoft + posséder le jeu).
 
 ## ❌ Volontairement hors périmètre
 - **Contourner l'authentification premium / faire croire qu'on possède le jeu** : techniquement impossible (vérification cryptographique côté serveur Mojang) et contraire aux CGU. Cubox reste un launcher honnête, axé hors-ligne.

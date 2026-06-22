@@ -45,6 +45,7 @@ import org.jackhuang.hmcl.auth.yggdrasil.GameProfile;
 import org.jackhuang.hmcl.auth.yggdrasil.YggdrasilService;
 import org.jackhuang.hmcl.game.TexturesLoader;
 import org.jackhuang.hmcl.setting.Accounts;
+import org.jackhuang.hmcl.setting.Cubox;
 import org.jackhuang.hmcl.task.Schedulers;
 import org.jackhuang.hmcl.task.Task;
 import org.jackhuang.hmcl.task.TaskExecutor;
@@ -110,6 +111,10 @@ public class CreateAccountPane extends JFXDialogLayout implements DialogAware {
         } else {
             showMethodSwitcher = false;
         }
+        // Cubox offline-only: never default to Microsoft sign-in.
+        if (Cubox.OFFLINE_ONLY && factory == Accounts.FACTORY_MICROSOFT) {
+            factory = Accounts.FACTORY_OFFLINE;
+        }
         this.factory = factory;
 
         {
@@ -147,10 +152,14 @@ public class CreateAccountPane extends JFXDialogLayout implements DialogAware {
         }
 
         if (showMethodSwitcher) {
-            TabControl.Tab<?>[] tabs = new TabControl.Tab[Accounts.FACTORIES.size()];
+            // Cubox offline-only: drop the Microsoft sign-in tab from the switcher.
+            List<AccountFactory<?>> factories = Cubox.OFFLINE_ONLY
+                    ? Accounts.FACTORIES.stream().filter(f -> f != Accounts.FACTORY_MICROSOFT).collect(java.util.stream.Collectors.toList())
+                    : Accounts.FACTORIES;
+            TabControl.Tab<?>[] tabs = new TabControl.Tab[factories.size()];
             TabControl.Tab<?> selected = null;
             for (int i = 0; i < tabs.length; i++) {
-                AccountFactory<?> f = Accounts.FACTORIES.get(i);
+                AccountFactory<?> f = factories.get(i);
                 tabs[i] = new TabControl.Tab<>(Accounts.getLoginType(f), Accounts.getLocalizedLoginTypeName(f));
                 tabs[i].setUserData(f);
                 if (factory == f) {

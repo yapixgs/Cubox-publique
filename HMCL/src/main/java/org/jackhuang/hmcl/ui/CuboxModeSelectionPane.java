@@ -30,6 +30,10 @@ import org.jackhuang.hmcl.ui.construct.DialogCloseEvent;
 
 import static org.jackhuang.hmcl.util.i18n.I18n.i18n;
 
+/// **ARCHIVED / hibernated.** Cubox currently ships as an offline-only launcher
+/// (see `org.jackhuang.hmcl.setting.Cubox#OFFLINE_ONLY`); this chooser is no
+/// longer shown. It is kept so the online mode ("CuboxPO") can be revived later.
+///
 /// First-run (and on-demand) chooser between the two Cubox modes.
 ///
 /// Presents two large colored cards — CuboxFO (offline, cyan) and CuboxPO
