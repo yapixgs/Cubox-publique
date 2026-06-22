@@ -22,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static org.jackhuang.hmcl.setting.ConfigHolder.config;
+import static org.jackhuang.hmcl.setting.ConfigHolder.globalConfig;
 
 /// The two usage modes offered by Cubox.
 ///
@@ -79,11 +80,30 @@ public enum CuboxMode {
         return fromName(config().getCuboxMode());
     }
 
-    /// Selects [mode]: persists it to the configuration and applies its brand
-    /// accent color. Applying the accent here is what makes the Cubox color
-    /// visible even when an older theme color was previously persisted.
+    /// Selects [mode]: persists it to the configuration, applies its brand
+    /// accent color, and updates the account flow ([#applyToSession]). Applying
+    /// the accent here is what makes the Cubox color visible even when an older
+    /// theme color was previously persisted.
     public static void select(@NotNull CuboxMode mode) {
         config().setCuboxMode(mode.name());
         config().setThemeColor(mode.getAccent());
+        applyToSession();
+    }
+
+    /// Applies the current mode's behavior to the running session. Cubox is
+    /// offline-first, so offline accounts are always made available; the mode
+    /// then decides which account type the "add account" flow defaults to —
+    /// offline (a simple username) for [#OFFLINE], Microsoft for [#ONLINE].
+    ///
+    /// Call this at startup so a mode chosen in a previous run still drives the
+    /// account flow (otherwise the Microsoft sign-in window could appear even
+    /// in offline mode).
+    public static void applyToSession() {
+        // Offline accounts are always available in Cubox (offline-first).
+        globalConfig().setEnableOfflineAccount(true);
+
+        CuboxMode mode = current();
+        if (mode != null)
+            config().setPreferredLoginType(mode == ONLINE ? "microsoft" : "offline");
     }
 }
