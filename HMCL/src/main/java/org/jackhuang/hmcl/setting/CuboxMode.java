@@ -24,6 +24,10 @@ import org.jetbrains.annotations.Nullable;
 import static org.jackhuang.hmcl.setting.ConfigHolder.config;
 import static org.jackhuang.hmcl.setting.ConfigHolder.globalConfig;
 
+/// **ARCHIVED / hibernated.** Cubox currently ships as an offline-only launcher
+/// (see [Cubox#OFFLINE_ONLY]); this dual-mode system is not wired into the UI.
+/// It is kept on purpose so the online mode ("CuboxPO") can be revived later.
+///
 /// The two usage modes offered by Cubox.
 ///
 /// Each mode carries its own brand accent color. Selecting a mode applies that

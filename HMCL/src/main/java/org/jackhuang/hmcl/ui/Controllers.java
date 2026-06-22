@@ -462,16 +462,12 @@ public final class Controllers {
             Controllers.dialog(agreementPane);
         }
 
-        // Cubox: apply the selected mode's account flow (offline-first; the mode
-        // decides the default account type) so a mode chosen in a previous run
-        // keeps the Microsoft sign-in window from appearing in offline mode.
-        CuboxMode.applyToSession();
-
-        // On first run, ask the user to pick a mode (CuboxFO / CuboxPO).
-        // Selecting a mode also applies its brand accent, so the Cubox color
-        // becomes visible even if an older theme color was previously persisted.
-        if (CuboxMode.current() == null) {
-            Controllers.dialog(new CuboxModeSelectionPane(true));
+        // Cubox is an offline-only launcher: always enable offline accounts and
+        // default the "add account" flow to them. The online mode (CuboxPO /
+        // Microsoft sign-in) is hibernated — see setting.Cubox.OFFLINE_ONLY.
+        if (Cubox.OFFLINE_ONLY) {
+            globalConfig().setEnableOfflineAccount(true);
+            config().setPreferredLoginType("offline");
         }
 
         aprilFools:

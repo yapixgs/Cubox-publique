@@ -38,6 +38,7 @@ import javafx.scene.layout.VBox;
 import org.jackhuang.hmcl.auth.Account;
 import org.jackhuang.hmcl.auth.authlibinjector.AuthlibInjectorServer;
 import org.jackhuang.hmcl.setting.Accounts;
+import org.jackhuang.hmcl.setting.Cubox;
 import org.jackhuang.hmcl.ui.Controllers;
 import org.jackhuang.hmcl.ui.FXUtils;
 import org.jackhuang.hmcl.ui.SVG;
@@ -166,7 +167,10 @@ public final class AccountListPage extends DecoratorAnimatedPage implements Deco
                     Bindings.bindContent(boxAuthServers.getChildren(), authServerItems);
 
                     ClassTitle title = new ClassTitle(i18n("account.create").toUpperCase(Locale.ROOT));
-                    if (RESTRICTED.get()) {
+                    if (Cubox.OFFLINE_ONLY) {
+                        // Cubox offline-only: hide the Microsoft sign-in option entirely.
+                        boxMethods.getChildren().setAll(title, offlineItem, boxAuthServers);
+                    } else if (RESTRICTED.get()) {
                         VBox wrapper = new VBox(offlineItem, boxAuthServers);
                         wrapper.setPadding(Insets.EMPTY);
                         FXUtils.installFastTooltip(wrapper, i18n("account.login.restricted"));
