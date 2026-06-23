@@ -377,4 +377,18 @@ public final class Versions {
         // VersionPage.loadVersion will be invoked after navigation
         Controllers.navigate(Controllers.getVersionPage());
     }
+
+    /// Opens the installed-mods manager for the given instance directly.
+    public static void manageMods(Profile profile, String version) {
+        Controllers.getVersionPage().setVersion(version, profile);
+        Controllers.getVersionPage().showMods();
+        Controllers.navigate(Controllers.getVersionPage());
+    }
+
+    /// Opens the worlds/saves manager for the given instance directly.
+    public static void manageWorlds(Profile profile, String version) {
+        Controllers.getVersionPage().setVersion(version, profile);
+        Controllers.getVersionPage().showWorlds();
+        Controllers.navigate(Controllers.getVersionPage());
+    }
 }

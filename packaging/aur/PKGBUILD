@@ -26,6 +26,18 @@ build() {
   chmod +x ./gradlew
   # Force JDK 21 (version testée) plutôt que le JDK système éventuellement trop récent
   export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
+
+  # Clé API CurseForge (active le navigateur CurseForge dans Cubox).
+  # La clé N'EST PAS dans le dépôt : on la lit depuis la variable
+  # d'environnement CURSEFORGE_API_KEY, ou depuis un fichier local
+  # ~/.config/cubox/curseforge.key (une seule ligne = la clé).
+  # Sans clé, Cubox fonctionne quand même (Modrinth uniquement).
+  local cubox_cf_key_file="${XDG_CONFIG_HOME:-$HOME/.config}/cubox/curseforge.key"
+  if [ -z "${CURSEFORGE_API_KEY:-}" ] && [ -r "$cubox_cf_key_file" ]; then
+    CURSEFORGE_API_KEY="$(tr -d '[:space:]' < "$cubox_cf_key_file")"
+  fi
+  export CURSEFORGE_API_KEY="${CURSEFORGE_API_KEY:-}"
+
   # Build local : Gradle télécharge ses dépendances depuis Internet (machine Arch = OK)
   JAVA_TOOL_OPTIONS="-XX:-UsePerfData" VERSION_TYPE="unofficial" \
     "$JAVA_HOME/bin/java" -version
