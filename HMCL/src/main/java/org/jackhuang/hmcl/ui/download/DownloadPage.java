@@ -78,10 +78,15 @@ public class DownloadPage extends DecoratorAnimatedPage implements DecoratorPage
     private final ReadOnlyObjectWrapper<DecoratorPage.State> state = new ReadOnlyObjectWrapper<>(DecoratorPage.State.fromTitle(i18n("download"), -1));
     private final TabHeader tab;
     private final TabHeader.Tab<VersionsPage> newGameTab = new TabHeader.Tab<>("newGameTab");
-    private final TabHeader.Tab<DownloadListPage> modTab = new TabHeader.Tab<>("modTab");
-    private final TabHeader.Tab<DownloadListPage> modpackTab = new TabHeader.Tab<>("modpackTab");
-    private final TabHeader.Tab<DownloadListPage> resourcePackTab = new TabHeader.Tab<>("resourcePackTab");
-    private final TabHeader.Tab<DownloadListPage> shaderTab = new TabHeader.Tab<>("shaderTab");
+    // Sources séparées : un onglet par (type de contenu × source) — Modrinth (mr) / CurseForge (cf).
+    private final TabHeader.Tab<DownloadListPage> mrModpackTab = new TabHeader.Tab<>("mrModpackTab");
+    private final TabHeader.Tab<DownloadListPage> mrModTab = new TabHeader.Tab<>("mrModTab");
+    private final TabHeader.Tab<DownloadListPage> mrResourcePackTab = new TabHeader.Tab<>("mrResourcePackTab");
+    private final TabHeader.Tab<DownloadListPage> mrShaderTab = new TabHeader.Tab<>("mrShaderTab");
+    private final TabHeader.Tab<DownloadListPage> cfModpackTab = new TabHeader.Tab<>("cfModpackTab");
+    private final TabHeader.Tab<DownloadListPage> cfModTab = new TabHeader.Tab<>("cfModTab");
+    private final TabHeader.Tab<DownloadListPage> cfResourcePackTab = new TabHeader.Tab<>("cfResourcePackTab");
+    private final TabHeader.Tab<DownloadListPage> cfShaderTab = new TabHeader.Tab<>("cfShaderTab");
     private final TabHeader.Tab<DownloadListPage> worldTab = new TabHeader.Tab<>("worldTab");
     private final TransitionPane transitionPane = new TransitionPane();
     private final DownloadNavigator versionPageNavigator = new DownloadNavigator();
@@ -95,40 +100,56 @@ public class DownloadPage extends DecoratorAnimatedPage implements DecoratorPage
     public DownloadPage(String uploadVersion) {
         newGameTab.setNodeSupplier(loadVersionFor(() -> new VersionsPage(versionPageNavigator, i18n("install.installer.choose", i18n("install.installer.game")), "", DownloadProviders.getDownloadProvider(),
                 "game", versionPageNavigator::onGameSelected)));
-        modpackTab.setNodeSupplier(loadVersionFor(() -> {
-            DownloadListPage page = HMCLLocalizedDownloadListPage.ofModPack((downloadProvider, profile, __, mod, file) -> {
-                Versions.downloadModpackImpl(downloadProvider, profile, uploadVersion, mod, file);
-            }, false);
+        org.jackhuang.hmcl.ui.versions.DownloadPage.DownloadCallback modpackCallback =
+                (downloadProvider, profile, __, mod, file) ->
+                        Versions.downloadModpackImpl(downloadProvider, profile, uploadVersion, mod, file);
 
-            JFXButton installLocalModpackButton = FXUtils.newRaisedButton(i18n("install.modpack"));
-            installLocalModpackButton.setOnAction(e -> Versions.importModpack());
-
-            page.getActions().add(installLocalModpackButton);
-            return page;
-        }));
-        modTab.setNodeSupplier(loadVersionFor(() -> HMCLLocalizedDownloadListPage.ofMod(FOR_MOD, true)));
-        resourcePackTab.setNodeSupplier(loadVersionFor(() -> HMCLLocalizedDownloadListPage.ofResourcePack(FOR_RESOURCE_PACK, true)));
-        shaderTab.setNodeSupplier(loadVersionFor(() -> HMCLLocalizedDownloadListPage.ofShaderPack(FOR_SHADER, true)));
+        mrModpackTab.setNodeSupplier(loadVersionFor(() -> withImportModpack(HMCLLocalizedDownloadListPage.ofModrinthModPack(modpackCallback, false))));
+        cfModpackTab.setNodeSupplier(loadVersionFor(() -> withImportModpack(HMCLLocalizedDownloadListPage.ofCurseForgeModPack(modpackCallback, false))));
+        mrModTab.setNodeSupplier(loadVersionFor(() -> HMCLLocalizedDownloadListPage.ofModrinthMod(FOR_MOD, true)));
+        cfModTab.setNodeSupplier(loadVersionFor(() -> HMCLLocalizedDownloadListPage.ofCurseForgeMod(FOR_MOD, true)));
+        mrResourcePackTab.setNodeSupplier(loadVersionFor(() -> HMCLLocalizedDownloadListPage.ofModrinthResourcePack(FOR_RESOURCE_PACK, true)));
+        cfResourcePackTab.setNodeSupplier(loadVersionFor(() -> HMCLLocalizedDownloadListPage.ofCurseForgeResourcePack(FOR_RESOURCE_PACK, true)));
+        mrShaderTab.setNodeSupplier(loadVersionFor(() -> HMCLLocalizedDownloadListPage.ofModrinthShaderPack(FOR_SHADER, true)));
+        cfShaderTab.setNodeSupplier(loadVersionFor(() -> HMCLLocalizedDownloadListPage.ofCurseForgeShaderPack(FOR_SHADER, true)));
         worldTab.setNodeSupplier(loadVersionFor(() -> new DownloadListPage(CurseForgeRemoteModRepository.WORLDS)));
-        tab = new TabHeader(transitionPane, newGameTab, modpackTab, modTab, resourcePackTab, shaderTab, worldTab);
+        tab = new TabHeader(transitionPane, newGameTab,
+                mrModpackTab, mrModTab, mrResourcePackTab, mrShaderTab,
+                cfModpackTab, cfModTab, cfResourcePackTab, cfShaderTab, worldTab);
 
         Profiles.registerVersionsListener(this::loadVersions);
 
         tab.select(newGameTab);
 
+        // Sources d'installation séparées en sections claires : Modrinth / CurseForge.
         AdvancedListBox sideBar = new AdvancedListBox()
                 .startCategory(i18n("download.game").toUpperCase(Locale.ROOT))
                 .addNavigationDrawerTab(tab, newGameTab, i18n("game"), SVG.STADIA_CONTROLLER, SVG.STADIA_CONTROLLER_FILL)
-                .addNavigationDrawerTab(tab, modpackTab, i18n("modpack"), SVG.PACKAGE2, SVG.PACKAGE2_FILL)
-                .startCategory(i18n("download.content").toUpperCase(Locale.ROOT))
-                .addNavigationDrawerTab(tab, modTab, i18n("mods"), SVG.EXTENSION, SVG.EXTENSION_FILL)
-                .addNavigationDrawerTab(tab, resourcePackTab, i18n("resourcepack"), SVG.TEXTURE)
-                .addNavigationDrawerTab(tab, shaderTab, i18n("download.shader"), SVG.WB_SUNNY, SVG.WB_SUNNY_FILL)
-                .addNavigationDrawerTab(tab, worldTab, i18n("world"), SVG.PUBLIC);
+                .startCategory(i18n("mods.modrinth").toUpperCase(Locale.ROOT))
+                .addNavigationDrawerTab(tab, mrModpackTab, i18n("modpack"), SVG.PACKAGE2, SVG.PACKAGE2_FILL)
+                .addNavigationDrawerTab(tab, mrModTab, i18n("mods"), SVG.EXTENSION, SVG.EXTENSION_FILL)
+                .addNavigationDrawerTab(tab, mrResourcePackTab, i18n("resourcepack"), SVG.TEXTURE)
+                .addNavigationDrawerTab(tab, mrShaderTab, i18n("download.shader"), SVG.WB_SUNNY, SVG.WB_SUNNY_FILL);
+        if (CurseForgeRemoteModRepository.isAvailable()) {
+            sideBar.startCategory(i18n("mods.curseforge").toUpperCase(Locale.ROOT))
+                    .addNavigationDrawerTab(tab, cfModpackTab, i18n("modpack"), SVG.PACKAGE2, SVG.PACKAGE2_FILL)
+                    .addNavigationDrawerTab(tab, cfModTab, i18n("mods"), SVG.EXTENSION, SVG.EXTENSION_FILL)
+                    .addNavigationDrawerTab(tab, cfResourcePackTab, i18n("resourcepack"), SVG.TEXTURE)
+                    .addNavigationDrawerTab(tab, cfShaderTab, i18n("download.shader"), SVG.WB_SUNNY, SVG.WB_SUNNY_FILL)
+                    .addNavigationDrawerTab(tab, worldTab, i18n("world"), SVG.PUBLIC);
+        }
         FXUtils.setLimitWidth(sideBar, 200);
         setLeft(sideBar);
 
         setCenter(transitionPane);
+    }
+
+    /// Adds the "install local modpack" button to a modpack browse page.
+    private static DownloadListPage withImportModpack(DownloadListPage page) {
+        JFXButton installLocalModpackButton = FXUtils.newRaisedButton(i18n("install.modpack"));
+        installLocalModpackButton.setOnAction(e -> Versions.importModpack());
+        page.getActions().add(installLocalModpackButton);
+        return page;
     }
 
     private static <T extends Node> Supplier<T> loadVersionFor(Supplier<T> nodeSupplier) {
@@ -187,20 +208,12 @@ public class DownloadPage extends DecoratorAnimatedPage implements DecoratorPage
         runInFX(() -> {
             if (profile == Profiles.getSelectedProfile()) {
                 listenerHolder.add(FXUtils.onWeakChangeAndOperate(profile.selectedVersionProperty(), version -> {
-                    if (modTab.isInitialized()) {
-                        modTab.getNode().loadVersion(profile, null);
-                    }
-                    if (modpackTab.isInitialized()) {
-                        modpackTab.getNode().loadVersion(profile, null);
-                    }
-                    if (resourcePackTab.isInitialized()) {
-                        resourcePackTab.getNode().loadVersion(profile, null);
-                    }
-                    if (shaderTab.isInitialized()) {
-                        shaderTab.getNode().loadVersion(profile, null);
-                    }
-                    if (worldTab.isInitialized()) {
-                        worldTab.getNode().loadVersion(profile, null);
+                    for (TabHeader.Tab<DownloadListPage> contentTab : java.util.List.of(
+                            mrModpackTab, mrModTab, mrResourcePackTab, mrShaderTab,
+                            cfModpackTab, cfModTab, cfResourcePackTab, cfShaderTab, worldTab)) {
+                        if (contentTab.isInitialized()) {
+                            contentTab.getNode().loadVersion(profile, null);
+                        }
                     }
                 }));
             }
@@ -217,17 +230,17 @@ public class DownloadPage extends DecoratorAnimatedPage implements DecoratorPage
     }
 
     public void showModpackDownloads() {
-        tab.select(modpackTab, false);
+        tab.select(mrModpackTab, false);
     }
 
     public DownloadListPage showResourcePackDownloads() {
-        tab.select(resourcePackTab, false);
-        return resourcePackTab.getNode();
+        tab.select(mrResourcePackTab, false);
+        return mrResourcePackTab.getNode();
     }
 
     public DownloadListPage showModDownloads() {
-        tab.select(modTab, false);
-        return modTab.getNode();
+        tab.select(mrModTab, false);
+        return mrModTab.getNode();
     }
 
     public void showWorldDownloads() {
