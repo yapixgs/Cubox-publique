@@ -11,6 +11,9 @@ cd "$(dirname "$0")"
 # Annule la réécriture locale du PKGBUILD par makepkg (sera régénérée au build).
 git checkout -- packaging/aur/PKGBUILD 2>/dev/null || true
 
-git pull
+# Le dépôt est public : on tire en ANONYME en désactivant tout credential helper.
+# Évite l'erreur "identifiants invalides ou expirés" causée par un ancien
+# identifiant mis en cache lors du premier clone.
+GIT_TERMINAL_PROMPT=0 git -c credential.helper= pull
 cd packaging/aur
 makepkg -sif
