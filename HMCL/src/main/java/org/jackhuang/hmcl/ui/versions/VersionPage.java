@@ -135,6 +135,16 @@ public class VersionPage extends DecoratorAnimatedPage implements DecoratorPage 
         tab.select(versionSettingsTab, false);
     }
 
+    /// Opens the installed-mods manager tab of this instance.
+    public void showMods() {
+        tab.select(modListTab, false);
+    }
+
+    /// Opens the worlds/saves manager tab of this instance.
+    public void showWorlds() {
+        tab.select(worldListTab, false);
+    }
+
     public void setVersion(String version, Profile profile) {
         this.version.set(new Profile.ProfileVersion(profile, version));
     }

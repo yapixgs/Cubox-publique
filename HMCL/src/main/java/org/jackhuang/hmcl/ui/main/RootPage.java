@@ -180,6 +180,20 @@ public class RootPage extends DecoratorAnimatedPage implements DecoratorPage {
             gameItem.setOnAction(e -> Controllers.navigate(Controllers.getGameListPage()));
             FXUtils.onSecondaryButtonClicked(gameItem, () -> showGameListPopupMenu(gameItem));
 
+            // Mods shortcut: jump straight to the selected instance's mod manager.
+            AdvancedListItem modsItem = new AdvancedListItem();
+            modsItem.setLeftIcon(SVG.EXTENSION);
+            modsItem.setTitle(i18n("mods.manage"));
+            modsItem.setSubtitle(i18n("cubox.nav.mods.desc"));
+            modsItem.setOnAction(e -> openInstanceContent(true));
+
+            // Worlds shortcut: jump straight to the selected instance's worlds/saves manager.
+            AdvancedListItem worldsItem = new AdvancedListItem();
+            worldsItem.setLeftIcon(SVG.PUBLIC);
+            worldsItem.setTitle(i18n("world.manage"));
+            worldsItem.setSubtitle(i18n("cubox.nav.worlds.desc"));
+            worldsItem.setOnAction(e -> openInstanceContent(false));
+
             // forth item in left sidebar
             AdvancedListItem downloadItem = new AdvancedListItem();
             downloadItem.setLeftIcon(SVG.DOWNLOAD);
@@ -237,6 +251,8 @@ public class RootPage extends DecoratorAnimatedPage implements DecoratorPage {
                     .startCategory(i18n("version").toUpperCase(Locale.ROOT))
                     .add(gameListItem)
                     .add(gameItem)
+                    .add(modsItem)
+                    .add(worldsItem)
                     .add(downloadItem)
                     .startCategory(i18n("settings.launcher.general").toUpperCase(Locale.ROOT))
                     .add(launcherSettingsItem)
@@ -250,6 +266,21 @@ public class RootPage extends DecoratorAnimatedPage implements DecoratorPage {
             // the root page, with the sidebar in left, navigator in center.
             setLeft(sideBar);
             setCenter(getSkinnable().getMainPage());
+        }
+
+        /// Opens the mod or world manager of the currently selected instance.
+        /// If no instance is selected, falls back to the instance list so the
+        /// user can pick/create one first.
+        private void openInstanceContent(boolean mods) {
+            Profile profile = Profiles.getSelectedProfile();
+            String version = Profiles.getSelectedVersion();
+            if (version == null) {
+                Controllers.navigate(Controllers.getGameListPage());
+            } else if (mods) {
+                Versions.manageMods(profile, version);
+            } else {
+                Versions.manageWorlds(profile, version);
+            }
         }
 
         public void showGameListPopupMenu(Region gameListItem) {
