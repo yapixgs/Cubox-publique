@@ -47,6 +47,14 @@ public final class HMCLLocalizedDownloadListPage extends DownloadListPage {
         return new HMCLLocalizedDownloadListPage(callback, versionSelection, RemoteModRepository.Type.MODPACK, CurseForgeRemoteModRepository.MODPACKS, ModrinthRemoteModRepository.MODPACKS);
     }
 
+    public static DownloadListPage ofCurseForgeModPack(DownloadPage.DownloadCallback callback, boolean versionSelection) {
+        return new HMCLLocalizedDownloadListPage(callback, versionSelection, RemoteModRepository.Type.MODPACK, CurseForgeRemoteModRepository.MODPACKS, null);
+    }
+
+    public static DownloadListPage ofModrinthModPack(DownloadPage.DownloadCallback callback, boolean versionSelection) {
+        return new HMCLLocalizedDownloadListPage(callback, versionSelection, RemoteModRepository.Type.MODPACK, null, ModrinthRemoteModRepository.MODPACKS);
+    }
+
     public static DownloadListPage ofResourcePack(DownloadPage.DownloadCallback callback, boolean versionSelection) {
         return new HMCLLocalizedDownloadListPage(callback, versionSelection, RemoteModRepository.Type.RESOURCE_PACK, CurseForgeRemoteModRepository.RESOURCE_PACKS, ModrinthRemoteModRepository.RESOURCE_PACKS);
     }
@@ -61,6 +69,18 @@ public final class HMCLLocalizedDownloadListPage extends DownloadListPage {
 
     public static DownloadListPage ofShaderPack(DownloadPage.DownloadCallback callback, boolean versionSelection) {
         var page = new HMCLLocalizedDownloadListPage(callback, versionSelection, RemoteModRepository.Type.SHADER_PACK, CurseForgeRemoteModRepository.SHADERS, ModrinthRemoteModRepository.SHADER_PACKS);
+        page.supportChinese.set(false);
+        return page;
+    }
+
+    public static DownloadListPage ofCurseForgeShaderPack(DownloadPage.DownloadCallback callback, boolean versionSelection) {
+        var page = new HMCLLocalizedDownloadListPage(callback, versionSelection, RemoteModRepository.Type.SHADER_PACK, CurseForgeRemoteModRepository.SHADERS, null);
+        page.supportChinese.set(false);
+        return page;
+    }
+
+    public static DownloadListPage ofModrinthShaderPack(DownloadPage.DownloadCallback callback, boolean versionSelection) {
+        var page = new HMCLLocalizedDownloadListPage(callback, versionSelection, RemoteModRepository.Type.SHADER_PACK, null, ModrinthRemoteModRepository.SHADER_PACKS);
         page.supportChinese.set(false);
         return page;
     }
