@@ -118,6 +118,12 @@ public final class MainPage extends StackPane implements DecoratorPage {
 
         setPadding(new Insets(20));
 
+        // Top column: the announcement (if any) and the Cubox "featured mods" section.
+        VBox topBox = new VBox();
+        topBox.setPickOnBounds(false);
+        StackPane.setAlignment(topBox, Pos.TOP_LEFT);
+        StackPane.setMargin(topBox, new Insets(-15));
+
         if (Metadata.isNightly() || (Metadata.isDev() && !Objects.equals(Metadata.VERSION, config().getShownTips().get(ANNOUNCEMENT)))) {
             String title;
             String content;
@@ -160,9 +166,12 @@ public final class MainPage extends StackPane implements DecoratorPage {
             announcementPane = new TransitionPane();
             announcementPane.setContent(announcementBox, ContainerAnimations.NONE);
 
-            StackPane.setMargin(announcementPane, new Insets(-15));
-            getChildren().add(announcementPane);
+            topBox.getChildren().add(announcementPane);
         }
+
+        // Cubox: featured mods, one per category, shown under the announcement.
+        topBox.getChildren().add(buildFeaturedSection());
+        getChildren().add(topBox);
 
         updatePane = new StackPane();
         updatePane.setVisible(false);
@@ -274,6 +283,46 @@ public final class MainPage extends StackPane implements DecoratorPage {
 
         getChildren().addAll(updatePane, launchPane);
 
+    }
+
+    /// Builds the "featured mods" card: the best pick per category, shown on the
+    /// home page under the announcement.
+    private VBox buildFeaturedSection() {
+        VBox card = new VBox(12);
+        card.getStyleClass().add("card");
+        card.setMaxWidth(560);
+        Label title = new Label(i18n("cubox.featured.title"));
+        title.getStyleClass().add("title");
+        card.getChildren().addAll(
+                title,
+                featuredRow("Litematica", i18n("cubox.featured.litematica"), "https://modrinth.com/mod/litematica"),
+                featuredRow("Carpet", i18n("cubox.featured.carpet"), "https://modrinth.com/mod/carpet"),
+                featuredRow("OneBlock", i18n("cubox.featured.oneblock"), "https://modrinth.com/datapacks?q=one%20block"));
+
+        VBox wrapper = new VBox(card);
+        wrapper.setPadding(new Insets(15));
+        wrapper.setPickOnBounds(false);
+        return wrapper;
+    }
+
+    /// One featured-mod row: name + short description on the left, an "open" button on the right.
+    private BorderPane featuredRow(String name, String description, String url) {
+        Label nameLabel = new Label(name);
+        nameLabel.setStyle("-fx-font-weight: bold;");
+        Label descLabel = new Label(description);
+        descLabel.setWrapText(true);
+        VBox text = new VBox(2, nameLabel, descLabel);
+
+        JFXButton openButton = FXUtils.newRaisedButton(i18n("cubox.featured.open"));
+        openButton.setOnAction(e -> Controllers.onHyperlinkAction(url));
+
+        BorderPane row = new BorderPane();
+        row.setCenter(text);
+        BorderPane.setAlignment(text, Pos.CENTER_LEFT);
+        row.setRight(openButton);
+        BorderPane.setAlignment(openButton, Pos.CENTER);
+        BorderPane.setMargin(openButton, new Insets(0, 0, 0, 12));
+        return row;
     }
 
     private void showUpdate(boolean show) {

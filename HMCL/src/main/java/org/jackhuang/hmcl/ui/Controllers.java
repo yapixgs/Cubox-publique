@@ -102,6 +102,7 @@ public final class Controllers {
     private static Scene scene;
     private static Stage stage;
     private static VersionPage versionPage;
+    private static org.jackhuang.hmcl.ui.main.ContentOverviewPage contentOverviewPage;
     private static Lazy<GameListPage> gameListPage = new Lazy<>(() -> {
         GameListPage gameListPage = new GameListPage();
         gameListPage.selectedProfileProperty().bindBidirectional(Profiles.selectedProfileProperty());
@@ -155,6 +156,14 @@ public final class Controllers {
             LOG.info("Prepare the version page");
             versionPage = FXUtils.prepareNode(new VersionPage());
         }
+    }
+
+    // FXThread
+    public static org.jackhuang.hmcl.ui.main.ContentOverviewPage getContentOverviewPage() {
+        if (contentOverviewPage == null) {
+            contentOverviewPage = new org.jackhuang.hmcl.ui.main.ContentOverviewPage();
+        }
+        return contentOverviewPage;
     }
 
     // FXThread
@@ -654,6 +663,7 @@ public final class Controllers {
     public static void shutdown() {
         rootPage = null;
         versionPage = null;
+        contentOverviewPage = null;
         gameListPage = null;
         downloadPage = null;
         accountListPage = null;
