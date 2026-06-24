@@ -44,7 +44,9 @@ if (buildNumber != null) {
 } else {
     val shortCommit = System.getenv("GITHUB_SHA")?.lowercase()?.substring(0, 7)
     version = if (shortCommit.isNullOrBlank()) {
-        "$versionRoot.SNAPSHOT"
+        // Build local (aucun commit injecté) : on garde la version « propre »
+        // telle quelle (ex. « 1.0 »), sans suffixe « .SNAPSHOT ».
+        versionRoot
     } else if (isOfficial) {
         "$versionRoot.dev-$shortCommit"
     } else {
