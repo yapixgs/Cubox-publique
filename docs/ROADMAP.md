@@ -1,7 +1,8 @@
 # Cubox — Fonctionnalités & feuille de route
 
-> Document de pilotage du projet Cubox (fork de HMCL).
-> Mis à jour au fil de l'avancement.
+> 🏁 **Cubox 1.0 — version finale.** Le projet est livré et **clôturé** à la 1.0.
+> Les éléments listés sous « Pistes futures » ne sont **pas inclus** dans la 1.0
+> (idées conservées si le projet venait à reprendre).
 
 ## ✅ Déjà présent
 
@@ -26,7 +27,9 @@
 - **Dépôt nettoyé** : restes HMCL retirés (docs traduites, config Jenkins) ;
   doc de référence réduite à `README.md` + ce fichier + le guide débutant
 
-## 🧩 À ajouter / manquant
+## 🧩 Pistes futures (non incluses en 1.0)
+
+> Idées conservées pour une éventuelle reprise — **pas prévues** dans la version finale.
 
 | Fonctionnalité | Intérêt pour débuter | Coût / difficulté |
 |---|---|---|
@@ -38,15 +41,17 @@
 | **Ajout rapide de serveur** depuis l'accueil | ⭐⭐ | Moyen |
 | ~~**Login Microsoft (CuboxPO)** — serveurs premium~~ | ⭐ (avancé) | **Archivé** (carte + formulaire MS impraticables ; nécessite de posséder le jeu) |
 
-## 🗺️ Feuille de route jusqu'à la v1.0
+## 🏁 Statut : 1.0 — version finale (projet clôturé)
 
-- **v0.5 — Fondations (FAIT)** : rebrand, FR, sidebar, perf, dossier données, **passage en launcher hors-ligne** (CuboxPO archivé), **logo rond + nettoyage du dépôt**.
-- **v0.6 — Onboarding & confort** : guide « Premiers pas », accueil clarifié, (option) CurseForge.
-- **v0.7 — Multijoueur facile** : liste de serveurs non-premium, ajout rapide de serveur, doc « jouer en ligne ».
-- **v0.8 — Skins & perso** : skins hors-ligne (Ely.by), réglages de thème.
-- **v0.9 — Stabilisation** : tests, finitions, documentation utilisateur.
-- **v1.0 — Version stable** : tout ce qui précède, poli et documenté. Cubox = launcher hors-ligne complet.
-  - *Mode en ligne (CuboxPO) = archivé*, réactivable plus tard si besoin (carte + formulaire Microsoft + posséder le jeu).
+Cubox **1.0** est la version finale livrée :
+- rebrand complet, UI 100 % FR, **logo rond**
+- **launcher hors-ligne** (mode en ligne « CuboxPO » archivé)
+- barre latérale clarifiée, fix de performance, dossier de données stable
+- **build local** Linux + Windows, et **paquets autonomes** (Java embarqué) pour la distribution
+- dépôt nettoyé, version affichée **« Cubox v1.0 »**
+
+> *Mode en ligne (CuboxPO) = archivé*, réactivable plus tard si besoin
+> (carte + formulaire Microsoft + posséder le jeu).
 
 ## ❌ Volontairement hors périmètre
 - **Contourner l'authentification premium / faire croire qu'on possède le jeu** : techniquement impossible (vérification cryptographique côté serveur Mojang) et contraire aux CGU. Cubox reste un launcher honnête, axé hors-ligne.
