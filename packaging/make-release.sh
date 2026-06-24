@@ -98,15 +98,40 @@ cp "$SH" "$lindir/Cubox.sh"; chmod +x "$lindir/Cubox.sh"
 extract_as_jre "$LIN_TGZ" "$lindir"
 ( cd "$DIST" && tar -czf "Cubox-$VERSION-linux-x64.tar.gz" "Cubox-$VERSION-linux-x64" )
 
+# --- Bonus : paquet Arch / pacman (si makepkg est dispo) --------------------
+# Produit un .pkg.tar.zst installable avec « sudo pacman -U … » (Arch & dérivés).
+# makepkg compile depuis la branche main du dépôt distant (source git du PKGBUILD),
+# pense donc à pousser tes commits avant. Ignoré silencieusement hors Arch.
+pkg_built=""
+if command -v makepkg >/dev/null 2>&1; then
+  echo "📦 Bonus  Paquet Arch/pacman (makepkg)…"
+  ( cd packaging/aur && rm -f ./*.pkg.tar.zst && makepkg -f --noconfirm )
+  pkg="$(find packaging/aur -maxdepth 1 -name 'cubox-*.pkg.tar.zst' | head -n1 || true)"
+  if [ -n "$pkg" ]; then
+    cp "$pkg" "$DIST/"
+    pkg_built="$(basename "$pkg")"
+    echo "   → $pkg_built"
+  else
+    echo "   ⚠️  paquet pacman non produit (voir la sortie makepkg ci-dessus)"
+  fi
+else
+  echo "ℹ️  makepkg absent → paquet Arch/pacman non généré (normal hors Arch Linux)."
+fi
+
 # --- Sommes de contrôle + ménage des dossiers intermédiaires ----------------
 rm -rf "$windir" "$lindir"
-( cd "$DIST" && sha256sum Cubox-"$VERSION"-windows-x64.zip Cubox-"$VERSION"-linux-x64.tar.gz \
+( cd "$DIST" && sha256sum \
+    "Cubox-$VERSION-windows-x64.zip" \
+    "Cubox-$VERSION-linux-x64.tar.gz" \
+    ${pkg_built:+"$pkg_built"} \
     > "Cubox-$VERSION-SHA256.txt" )
 
 echo
 echo "✅ Terminé. Paquets dans $DIST/ :"
-ls -lh "$DIST"/Cubox-"$VERSION"-* 2>/dev/null
+ls -lh "$DIST"/ 2>/dev/null
 echo
 echo "👉 Téléverse ces fichiers dans une *Release* sur la forge."
-echo "   Windows : décompresser le .zip → double-clic sur Cubox.exe (rien d'autre à installer)."
-echo "   Linux   : décompresser le .tar.gz → ./Cubox.sh"
+echo "   Windows     : décompresser le .zip → double-clic sur Cubox.exe (rien à installer)."
+echo "   Linux       : décompresser le .tar.gz → ./Cubox.sh"
+[ -n "$pkg_built" ] && \
+echo "   Arch/pacman : sudo pacman -U $pkg_built"

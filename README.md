@@ -66,6 +66,11 @@ Le script compile Cubox, télécharge les JRE Temurin 21 et produit dans `dist/`
 |---|---|---|
 | `Cubox-<version>-windows-x64.zip`  | Windows (rien à installer) | décompresser → double-clic sur `Cubox.exe` |
 | `Cubox-<version>-linux-x64.tar.gz` | Linux (rien à installer)   | décompresser → `./Cubox.sh` |
+| `cubox-<version>-*.pkg.tar.zst`    | Arch Linux / pacman        | `sudo pacman -U cubox-*.pkg.tar.zst` |
+
+> Le paquet **Arch/pacman** n'est généré que si `makepkg` est présent (donc sur
+> Arch & dérivés). Il s'installe proprement dans le système (icône au menu), à la
+> différence des deux archives portables ci-dessus.
 
 Il suffit ensuite de **téléverser ces fichiers dans une *Release*** sur la forge.
 (Ces paquets ne sont créés **que pour les versions finales** ; au quotidien, on

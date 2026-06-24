@@ -36,6 +36,12 @@ language-subtag-registry
 # paquets de release produits par packaging/make-release.sh
 /dist/
 
+# artefacts makepkg (paquet Arch/pacman)
+/packaging/aur/src/
+/packaging/aur/pkg/
+/packaging/aur/*.pkg.tar.*
+/packaging/aur/*.log
+
 # idea
 .idea
 /out/
