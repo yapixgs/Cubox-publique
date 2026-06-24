@@ -46,8 +46,33 @@ Résultat dans `HMCL/build/libs/` :
 | `Cubox-<version>.exe` | Windows (natif) | double-clic |
 | `Cubox-<version>.sh`  | Linux | `sh Cubox-<version>.sh` |
 
-> Le `.jar` suffit partout si Java 21 est installé. Le `.exe` et le `.sh` sont
-> des lanceurs autonomes pratiques (pas besoin de taper la commande Java).
+> ℹ️ Ces 3 fichiers ont **besoin de Java 21 installé** sur la machine (le `.exe`
+> et le `.sh` ne font que trouver le Java du système). Pour un paquet qui n'a
+> **besoin de rien**, voir « Publier une version finale » ci-dessous.
+
+## Publier une version finale (paquets « besoin de rien »)
+
+Pour distribuer Cubox à des gens qui **n'ont pas Java** (ex. des potes sous
+Windows), on génère des paquets qui **embarquent un JRE Java 21** : l'utilisateur
+décompresse et lance, sans rien installer.
+
+```bash
+./packaging/make-release.sh          # ou : ./packaging/make-release.sh 1.0
+```
+
+Le script compile Cubox, télécharge les JRE Temurin 21 et produit dans `dist/` :
+
+| Paquet | Pour | Utilisation |
+|---|---|---|
+| `Cubox-<version>-windows-x64.zip`  | Windows (rien à installer) | décompresser → double-clic sur `Cubox.exe` |
+| `Cubox-<version>-linux-x64.tar.gz` | Linux (rien à installer)   | décompresser → `./Cubox.sh` |
+
+Il suffit ensuite de **téléverser ces fichiers dans une *Release*** sur la forge.
+(Ces paquets ne sont créés **que pour les versions finales** ; au quotidien, on
+compile en local — voir la section précédente.)
+
+> Le `.exe` trouve son Java dans le dossier `jre-x64\` placé à côté de lui : tant
+> que ce dossier reste avec l'exécutable, aucune installation de Java n'est requise.
 
 ## Lancer
 
