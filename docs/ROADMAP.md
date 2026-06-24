@@ -19,10 +19,12 @@
 - **Launcher hors-ligne** (le mode en ligne « CuboxPO » est **archivé/hiberné** — voir `setting.Cubox.OFFLINE_ONLY`)
 - **UI 100 % en français**
 - **Barre latérale clarifiée** (sous-titres explicatifs + section « Avancé »)
-- **Thème / branding** Cubox (logo, accent cyan)
+- **Thème / branding** Cubox (logo **rond**, accent cyan)
 - **Fix de performance** (ombre désactivée en rendu logiciel)
 - **Dossier de données stable** (`~/.local/share/cubox`)
 - Flux de compte **hors-ligne par défaut**, option Microsoft masquée
+- **Dépôt nettoyé** : restes HMCL retirés (docs traduites, config Jenkins) ;
+  doc de référence réduite à `README.md` + ce fichier + le guide débutant
 
 ## 🧩 À ajouter / manquant
 
@@ -38,7 +40,7 @@
 
 ## 🗺️ Feuille de route jusqu'à la v1.0
 
-- **v0.5 — Fondations (FAIT)** : rebrand, FR, sidebar, perf, dossier données, **passage en launcher hors-ligne** (CuboxPO archivé).
+- **v0.5 — Fondations (FAIT)** : rebrand, FR, sidebar, perf, dossier données, **passage en launcher hors-ligne** (CuboxPO archivé), **logo rond + nettoyage du dépôt**.
 - **v0.6 — Onboarding & confort** : guide « Premiers pas », accueil clarifié, (option) CurseForge.
 - **v0.7 — Multijoueur facile** : liste de serveurs non-premium, ajout rapide de serveur, doc « jouer en ligne ».
 - **v0.8 — Skins & perso** : skins hors-ligne (Ely.by), réglages de thème.
