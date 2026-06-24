@@ -2,8 +2,12 @@
 pkgname=cubox
 # Version dynamique : dérivée du git (voir pkgver() plus bas).
 # La valeur ci-dessous n'est qu'un placeholder, makepkg la remplace au build.
-pkgver=3.15
+pkgver=1.0
 pkgrel=1
+# epoch=1 : la version est passée de « 3.15.* » à « 1.0.* ». Sans epoch, pacman
+# verrait 1.0 < 3.15 et refuserait la mise à jour (downgrade). L'epoch prime sur
+# le reste de la version et garantit que « 1:1.0.* » est bien vu comme plus récent.
+epoch=1
 pkgdesc="Cubox — launcher Minecraft hors-ligne, fork rebrandé de HMCL"
 arch=('any')
 url="https://forge.oxitablock.com/Yapix839/Cubox"
@@ -13,12 +17,12 @@ makedepends=('jdk21-openjdk' 'git')
 source=("git+https://forge.oxitablock.com/Yapix839/Cubox.git#branch=main")
 sha256sums=('SKIP')
 
-# Génère une version unique par commit (ex. 3.15.r123.g9d723c5) afin que
+# Génère une version unique par commit (ex. 1.0.r123.g9d723c5) afin que
 # chaque nouveau commit sur main déclenche un vrai rebuild — sinon makepkg
 # réinstalle l'ancien paquet déjà compilé au lieu de recompiler le code à jour.
 pkgver() {
   cd "$srcdir/Cubox"
-  printf "3.15.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+  printf "1.0.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 build() {
