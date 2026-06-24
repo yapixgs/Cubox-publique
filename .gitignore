@@ -33,6 +33,9 @@ language-subtag-registry
 /minecraft/libraries/HMCLMultiMCBootstrap/build/
 /buildSrc/build/
 
+# paquets de release produits par packaging/make-release.sh
+/dist/
+
 # idea
 .idea
 /out/
