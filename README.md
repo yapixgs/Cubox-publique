@@ -10,7 +10,8 @@
   les serveurs d'origine est **désactivé** : Cubox ne « téléphone » à personne.
 - 🎨 Skins persos possibles via **authlib-injector** (ex. Ely.by), toujours
   sans compte Microsoft (optionnel).
-- 🐧 Build **Linux** (`.jar` exécutable + script `.sh` autonome).
+- 💻 **Multiplateforme** : un même build produit le `.jar` (Windows/Linux/macOS),
+  le `.exe` (Windows) et le `.sh` (Linux). Chacun compile Cubox **lui-même**.
 
 > ⚠️ Le mode hors-ligne permet de rejoindre les serveurs **non-premium**
 > (`online-mode=false`) et tes propres serveurs. Les serveurs **premium**
@@ -18,20 +19,35 @@
 > connexion — c'est une protection côté serveur qu'aucun launcher hors-ligne
 > ne peut contourner.
 
-## Build
+## Build (compilation locale)
 
-Le build se fait automatiquement sur la forge (Forgejo Actions,
-`.forgejo/workflows/build.yml`) à chaque push/PR sur `main`. Les artefacts
-Linux (`Cubox-<version>.jar` et `Cubox-<version>.sh`) sont publiés dans la
-page **Actions** du dépôt.
+> Il n'y a **pas de binaire pré-compilé** pour l'instant : chacun compile Cubox
+> chez soi. (Les versions finales seront publiées en *Releases* sur la forge.)
 
-Build local (nécessite un JDK 21 et ~1,5 Go d'espace disque) :
+**Prérequis** : un **JDK 21** et ~1,5 Go d'espace disque libre.
+
+**Linux / macOS** :
 
 ```bash
 ./gradlew :HMCL:makeExecutables
-# -> HMCL/build/libs/Cubox-<version>.jar  (lancer avec : java -jar Cubox-<version>.jar)
-# -> HMCL/build/libs/Cubox-<version>.sh   (lancer avec : sh Cubox-<version>.sh)
 ```
+
+**Windows** (dans `cmd` ou PowerShell, à la racine du dépôt) :
+
+```bat
+gradlew.bat :HMCL:makeExecutables
+```
+
+Résultat dans `HMCL/build/libs/` :
+
+| Fichier | Pour | Lancer avec |
+|---|---|---|
+| `Cubox-<version>.jar` | Windows / Linux / macOS | `java -jar Cubox-<version>.jar` |
+| `Cubox-<version>.exe` | Windows (natif) | double-clic |
+| `Cubox-<version>.sh`  | Linux | `sh Cubox-<version>.sh` |
+
+> Le `.jar` suffit partout si Java 21 est installé. Le `.exe` et le `.sh` sont
+> des lanceurs autonomes pratiques (pas besoin de taper la commande Java).
 
 ## Lancer
 
