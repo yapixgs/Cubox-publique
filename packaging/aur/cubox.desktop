@@ -6,4 +6,4 @@ Exec=cubox
 Icon=cubox
 Terminal=false
 Categories=Game;
-StartupWMClass=org-jackhuang-hmcl-Main
+StartupWMClass=org.jackhuang.hmcl.Launcher

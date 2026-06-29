@@ -30,7 +30,13 @@ val versionType = System.getenv("VERSION_TYPE") ?: if (isOfficial) "nightly" els
 val versionRoot = System.getenv("VERSION_ROOT") ?: projectConfig.getProperty("versionRoot") ?: "3"
 
 val microsoftAuthId = System.getenv("MICROSOFT_AUTH_ID") ?: ""
-val curseForgeApiKey = System.getenv("CURSEFORGE_API_KEY") ?: ""
+// CurseForge API key, baked into every build so the CurseForge browser/links
+// work out of the box. Resolution order: the CURSEFORGE_API_KEY environment
+// variable (CI / one-off overrides) wins, otherwise the value committed in
+// config/project.properties (curseForgeApiKey) is used. Empty disables CurseForge.
+val curseForgeApiKey = System.getenv("CURSEFORGE_API_KEY")
+    ?: projectConfig.getProperty("curseForgeApiKey")
+    ?: ""
 
 val launcherExe = System.getenv("HMCL_LAUNCHER_EXE") ?: ""
 

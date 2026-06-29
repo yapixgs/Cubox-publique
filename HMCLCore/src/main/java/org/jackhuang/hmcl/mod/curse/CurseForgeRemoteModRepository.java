@@ -30,6 +30,7 @@ import org.jackhuang.hmcl.util.io.NetworkUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -232,6 +233,60 @@ public final class CurseForgeRemoteModRepository implements RemoteModRepository 
             Response<CurseAddon> response = withApiKey(HttpRequest.GET(PREFIX + "/v1/mods/" + id))
                     .getJson(Response.typeOf(CurseAddon.class));
             return response.data.toMod(type);
+        } finally {
+            SEMAPHORE.release();
+        }
+    }
+
+    /// Resolves a project from its URL slug (the human-readable identifier in a
+    /// CurseForge project URL, e.g. `jei` in `.../mc-mods/jei`).
+    ///
+    /// The CurseForge API only exposes projects by their numeric id, so this
+    /// queries the search endpoint with the `slug` filter (scoped to this
+    /// repository's content type) and returns the first match.
+    ///
+    /// @param downloadProvider the provider used to inject mirror candidates
+    /// @param slug             the project slug taken from a CurseForge URL
+    /// @return the matching project
+    /// @throws IOException if the request fails or no project matches the slug
+    public RemoteMod getModBySlug(DownloadProvider downloadProvider, String slug) throws IOException {
+        SEMAPHORE.acquireUninterruptibly();
+        try {
+            var query = new LinkedHashMap<String, String>();
+            query.put("gameId", "432");
+            query.put("classId", Integer.toString(section));
+            query.put("slug", slug);
+            query.put("pageSize", "1");
+
+            IOException exception = null;
+            List<URI> candidates = downloadProvider.injectURLWithCandidates(NetworkUtils.withQuery(PREFIX + "/v1/mods/search", query));
+            for (URI candidate : candidates) {
+                try {
+                    Response<List<CurseAddon>> response = withApiKey(HttpRequest.GET(candidate.toString()))
+                            .getJson(Response.typeOf(listTypeOf(CurseAddon.class)));
+                    List<CurseAddon> data = response.getData();
+                    // The `slug` filter is an exact match server-side, so the first
+                    // result is the project. An empty list means no such slug exists;
+                    // that is a definitive answer, so stop trying other candidates.
+                    if (data == null || data.isEmpty()) {
+                        throw new FileNotFoundException("No CurseForge project found for slug: " + slug);
+                    }
+                    return data.get(0).toMod(type);
+                } catch (FileNotFoundException e) {
+                    throw e;
+                } catch (IOException e) {
+                    if (candidates.size() == 1) {
+                        exception = e;
+                    } else {
+                        if (exception == null) {
+                            exception = new IOException("Failed to resolve CurseForge slug: " + slug);
+                        }
+                        exception.addSuppressed(e);
+                    }
+                }
+            }
+
+            throw exception != null ? exception : new IOException("No candidates found");
         } finally {
             SEMAPHORE.release();
         }
