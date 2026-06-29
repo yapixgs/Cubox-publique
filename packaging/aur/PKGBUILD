@@ -45,8 +45,10 @@ build() {
   # Build local : Gradle télécharge ses dépendances depuis Internet (machine Arch = OK)
   JAVA_TOOL_OPTIONS="-XX:-UsePerfData" VERSION_TYPE="unofficial" \
     "$JAVA_HOME/bin/java" -version
+  # `clean` d'abord : garantit que le jar embarque bien la version courante
+  # (hmcl.properties), même si un build/ d'une compilation précédente traîne.
   JAVA_TOOL_OPTIONS="-XX:-UsePerfData" VERSION_TYPE="unofficial" \
-    ./gradlew :HMCL:makeExecutables --no-daemon --stacktrace
+    ./gradlew clean :HMCL:makeExecutables --no-daemon --stacktrace
 }
 
 package() {

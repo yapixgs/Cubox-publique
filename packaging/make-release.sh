@@ -38,8 +38,10 @@ need() { command -v "$1" >/dev/null 2>&1 || { echo "❌ Outil manquant : $1 (ins
 need curl; need unzip; need tar; need zip; need sha256sum
 
 # --- 1/4 : compilation ------------------------------------------------------
-echo "🔨 1/4  Compilation (gradlew :HMCL:makeExecutables)…"
-./gradlew :HMCL:makeExecutables --no-daemon
+# `clean` d'abord : un paquet de release doit toujours repartir d'un build neuf,
+# sinon un build/ périmé peut embarquer une ancienne version (hmcl.properties).
+echo "🔨 1/4  Compilation (gradlew clean :HMCL:makeExecutables)…"
+./gradlew clean :HMCL:makeExecutables --no-daemon
 
 # Détecte la version depuis le .exe produit (Cubox-<version>.exe)
 exe="$(find "$LIBS" -maxdepth 1 -name 'Cubox-*.exe' 2>/dev/null | head -n1 || true)"
@@ -105,7 +107,10 @@ extract_as_jre "$LIN_TGZ" "$lindir"
 pkg_built=""
 if command -v makepkg >/dev/null 2>&1; then
   echo "📦 Bonus  Paquet Arch/pacman (makepkg)…"
-  ( cd packaging/aur && rm -f ./*.pkg.tar.zst && makepkg -f --noconfirm )
+  # -C (--cleanbuild) supprime le $srcdir avant le build : indispensable ici car
+  # « git clean » du dépôt n'efface PAS packaging/aur/src/Cubox (dépôt git imbriqué),
+  # et un build/ périmé y ferait réembarquer une ancienne version dans le jar.
+  ( cd packaging/aur && rm -f ./*.pkg.tar.zst && makepkg -Cf --noconfirm )
   pkg="$(find packaging/aur -maxdepth 1 -name 'cubox-*.pkg.tar.zst' | head -n1 || true)"
   if [ -n "$pkg" ]; then
     cp "$pkg" "$DIST/"
