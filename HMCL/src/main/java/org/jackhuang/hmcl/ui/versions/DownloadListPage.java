@@ -239,9 +239,10 @@ public class DownloadListPage extends Control implements DecoratorPage, VersionP
 
     /// Maps a parsed link to the repository and install callback to use.
     ///
-    /// Returns {@code null} for content that cannot be installed straight from a
-    /// link (modpacks, which need the install wizard, or Modrinth worlds, which
-    /// do not exist).
+    /// Modpacks reuse the regular modpack install wizard (passing a {@code null}
+    /// upload version installs a fresh instance). Returns {@code null} for content
+    /// with no install path from a link (Modrinth worlds, which do not exist, and
+    /// CurseForge customizations).
     private static @Nullable LinkTarget resolveLinkTarget(ModRepositoryLink.Parsed parsed) {
         boolean curseforge = parsed.provider() == ModRepositoryLink.Provider.CURSEFORGE;
         return switch (parsed.type()) {
@@ -254,8 +255,12 @@ public class DownloadListPage extends Control implements DecoratorPage, VersionP
             case SHADER_PACK -> new LinkTarget(
                     curseforge ? CurseForgeRemoteModRepository.SHADERS : ModrinthRemoteModRepository.SHADER_PACKS,
                     org.jackhuang.hmcl.ui.download.DownloadPage.FOR_SHADER);
+            case MODPACK -> new LinkTarget(
+                    curseforge ? CurseForgeRemoteModRepository.MODPACKS : ModrinthRemoteModRepository.MODPACKS,
+                    (downloadProvider, profile, version, mod, file) ->
+                            Versions.downloadModpackImpl(downloadProvider, profile, null, mod, file));
             case WORLD -> curseforge ? new LinkTarget(CurseForgeRemoteModRepository.WORLDS, null) : null;
-            default -> null; // MODPACK / CUSTOMIZATION cannot be installed from a link
+            default -> null; // CUSTOMIZATION cannot be installed from a link
         };
     }
 
@@ -577,18 +582,10 @@ public class DownloadListPage extends Control implements DecoratorPage, VersionP
                     JFXButton searchButton = FXUtils.newRaisedButton(i18n("search"));
                     searchButton.setOnAction(searchAction);
 
-                    ObservableList<Node> trailingActions = FXCollections.observableArrayList(
-                            firstPageButton, previousPageButton, pageDescription, nextPageButton, lastPageButton, placeholder);
-                    // Installing from a link is only meaningful for single-file content;
-                    // modpacks need the install wizard, so the button is hidden there.
-                    if (control.repository.getType() != RemoteModRepository.Type.MODPACK) {
-                        JFXButton fromLinkButton = FXUtils.newBorderButton(i18n("mods.add_link"));
-                        fromLinkButton.setOnAction(e -> control.installFromLink());
-                        trailingActions.add(fromLinkButton);
-                    }
-                    trailingActions.add(searchButton);
+                    JFXButton fromLinkButton = FXUtils.newBorderButton(i18n("mods.add_link"));
+                    fromLinkButton.setOnAction(e -> control.installFromLink());
 
-                    actions.appendList(trailingActions);
+                    actions.appendList(FXCollections.observableArrayList(firstPageButton, previousPageButton, pageDescription, nextPageButton, lastPageButton, placeholder, fromLinkButton, searchButton));
                     actions.appendList(control.actions);
                     Bindings.bindContent(actionsBox.getChildren(), actions.getAggregatedList());
                 }
