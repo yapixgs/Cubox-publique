@@ -39,8 +39,10 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import org.jackhuang.hmcl.download.DownloadProvider;
 import org.jackhuang.hmcl.game.Version;
+import org.jackhuang.hmcl.mod.ModRepositoryLink;
 import org.jackhuang.hmcl.mod.RemoteMod;
 import org.jackhuang.hmcl.mod.RemoteModRepository;
+import org.jackhuang.hmcl.mod.curse.CurseForgeRemoteModRepository;
 import org.jackhuang.hmcl.mod.modrinth.ModrinthRemoteModRepository;
 import org.jackhuang.hmcl.setting.DownloadProviders;
 import org.jackhuang.hmcl.setting.Profile;
@@ -56,6 +58,7 @@ import org.jackhuang.hmcl.util.i18n.I18n;
 import org.jackhuang.hmcl.util.javafx.BindingMapping;
 import org.jackhuang.hmcl.util.versioning.GameVersionNumber;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.net.URI;
 import java.util.*;
@@ -223,6 +226,85 @@ public class DownloadListPage extends Control implements DecoratorPage, VersionP
         } else {
             return version.get();
         }
+    }
+
+    /// A resolved paste-a-link target: the repository to query and the callback
+    /// that installs the downloaded file into the current instance.
+    ///
+    /// @param repository the repository matching the link's provider and content type
+    /// @param callback   how to install the chosen file, or {@code null} to "save as"
+    ///                   (used for worlds, which CurseForge serves as plain archives)
+    private record LinkTarget(RemoteModRepository repository, @Nullable DownloadPage.DownloadCallback callback) {
+    }
+
+    /// Maps a parsed link to the repository and install callback to use.
+    ///
+    /// Returns {@code null} for content that cannot be installed straight from a
+    /// link (modpacks, which need the install wizard, or Modrinth worlds, which
+    /// do not exist).
+    private static @Nullable LinkTarget resolveLinkTarget(ModRepositoryLink.Parsed parsed) {
+        boolean curseforge = parsed.provider() == ModRepositoryLink.Provider.CURSEFORGE;
+        return switch (parsed.type()) {
+            case MOD -> new LinkTarget(
+                    curseforge ? CurseForgeRemoteModRepository.MODS : ModrinthRemoteModRepository.MODS,
+                    org.jackhuang.hmcl.ui.download.DownloadPage.FOR_MOD);
+            case RESOURCE_PACK -> new LinkTarget(
+                    curseforge ? CurseForgeRemoteModRepository.RESOURCE_PACKS : ModrinthRemoteModRepository.RESOURCE_PACKS,
+                    org.jackhuang.hmcl.ui.download.DownloadPage.FOR_RESOURCE_PACK);
+            case SHADER_PACK -> new LinkTarget(
+                    curseforge ? CurseForgeRemoteModRepository.SHADERS : ModrinthRemoteModRepository.SHADER_PACKS,
+                    org.jackhuang.hmcl.ui.download.DownloadPage.FOR_SHADER);
+            case WORLD -> curseforge ? new LinkTarget(CurseForgeRemoteModRepository.WORLDS, null) : null;
+            default -> null; // MODPACK / CUSTOMIZATION cannot be installed from a link
+        };
+    }
+
+    /// Prompts for a CurseForge or Modrinth project URL, resolves it, then opens
+    /// that project's download page so the user can pick a version and install it
+    /// into the current instance.
+    ///
+    /// Validation (malformed URL, unsupported content type, CurseForge disabled)
+    /// happens synchronously inside the prompt so the dialog stays open with an
+    /// inline reason; the network lookup runs afterwards in a task dialog.
+    public void installFromLink() {
+        Controllers.prompt(i18n("mods.add_link.prompt"), (url, resolver) -> {
+            Optional<ModRepositoryLink.Parsed> parsed = ModRepositoryLink.parse(url);
+            if (parsed.isEmpty()) {
+                resolver.reject(i18n("mods.add_link.invalid"));
+                return;
+            }
+
+            LinkTarget target = resolveLinkTarget(parsed.get());
+            if (target == null) {
+                resolver.reject(i18n("mods.add_link.unsupported"));
+                return;
+            }
+
+            if (target.repository() instanceof CurseForgeRemoteModRepository && !CurseForgeRemoteModRepository.isAvailable()) {
+                resolver.reject(i18n("mods.add_link.curseforge_unavailable"));
+                return;
+            }
+
+            resolver.resolve();
+            openLinkTarget(parsed.get(), target);
+        });
+    }
+
+    /// Looks the project up over the network and navigates to its download page.
+    private void openLinkTarget(ModRepositoryLink.Parsed parsed, LinkTarget target) {
+        Profile.ProfileVersion profileVersion = getProfileVersion();
+        Controllers.taskDialog(Task.supplyAsync(() -> {
+            if (parsed.provider() == ModRepositoryLink.Provider.CURSEFORGE) {
+                return ((CurseForgeRemoteModRepository) target.repository()).getModBySlug(downloadProvider, parsed.idOrSlug());
+            } else {
+                return target.repository().getModById(downloadProvider, parsed.idOrSlug());
+            }
+        }).thenAcceptAsync(Schedulers.javafx(), remoteMod -> {
+            // Reuse this page as the detail page's host when the repository matches,
+            // otherwise spin up a lightweight host for the resolved repository.
+            DownloadListPage host = target.repository() == this.repository ? this : new DownloadListPage(target.repository());
+            Controllers.navigate(new DownloadPage(host, remoteMod, profileVersion, target.callback()));
+        }), i18n("mods.add_link.resolving"), TaskCancellationAction.NORMAL);
     }
 
     @Override
@@ -495,7 +577,18 @@ public class DownloadListPage extends Control implements DecoratorPage, VersionP
                     JFXButton searchButton = FXUtils.newRaisedButton(i18n("search"));
                     searchButton.setOnAction(searchAction);
 
-                    actions.appendList(FXCollections.observableArrayList(firstPageButton, previousPageButton, pageDescription, nextPageButton, lastPageButton, placeholder, searchButton));
+                    ObservableList<Node> trailingActions = FXCollections.observableArrayList(
+                            firstPageButton, previousPageButton, pageDescription, nextPageButton, lastPageButton, placeholder);
+                    // Installing from a link is only meaningful for single-file content;
+                    // modpacks need the install wizard, so the button is hidden there.
+                    if (control.repository.getType() != RemoteModRepository.Type.MODPACK) {
+                        JFXButton fromLinkButton = FXUtils.newBorderButton(i18n("mods.add_link"));
+                        fromLinkButton.setOnAction(e -> control.installFromLink());
+                        trailingActions.add(fromLinkButton);
+                    }
+                    trailingActions.add(searchButton);
+
+                    actions.appendList(trailingActions);
                     actions.appendList(control.actions);
                     Bindings.bindContent(actionsBox.getChildren(), actions.getAggregatedList());
                 }
