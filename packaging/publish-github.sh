@@ -65,8 +65,10 @@ if ! gh repo view "$GITHUB_REPO" >/dev/null 2>&1; then
 fi
 
 # On pousse UNIQUEMENT main (aucune branche de dev). --force : main GitHub
-# reflète exactement main de la forge.
-git push --force "https://github.com/$GITHUB_REPO.git" "main:main"
+# reflète exactement main de la forge. On s'authentifie avec le jeton de `gh`
+# (fonctionne que tu aies choisi SSH ou HTTPS dans `gh auth login`).
+gh_token="$(gh auth token)"
+git push --force "https://x-access-token:${gh_token}@github.com/$GITHUB_REPO.git" "main:main"
 echo "   ✅ main poussée."
 
 # --- 2/2 : mirroir de toutes les Releases -----------------------------------
