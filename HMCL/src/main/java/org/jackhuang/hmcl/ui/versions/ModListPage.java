@@ -46,8 +46,10 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static org.jackhuang.hmcl.setting.ConfigHolder.config;
 import static org.jackhuang.hmcl.util.i18n.I18n.i18n;
 import static org.jackhuang.hmcl.util.logging.Logger.LOG;
 
@@ -60,6 +62,11 @@ public final class ModListPage extends ListPageBase<ModListPageSkin.ModInfoObjec
     private Profile profile;
     private String instanceId;
     private String gameVersion;
+
+    /// Instances (`profile/version`) whose mods have already been auto-checked for
+    /// updates during this launcher session, so the check runs at most once each
+    /// rather than on every navigation back to the mod list.
+    private static final Set<String> autoCheckedInstances = ConcurrentHashMap.newKeySet();
 
     final EnumSet<ModLoaderType> supportedLoaders = EnumSet.noneOf(ModLoaderType.class);
 
@@ -117,12 +124,45 @@ public final class ModListPage extends ListPageBase<ModListPageSkin.ModInfoObjec
 
             if (exception == null) {
                 getItems().setAll(list);
+                autoCheckModUpdates(list);
             } else {
                 LOG.warning("Failed to load mods", exception);
                 getItems().clear();
             }
             setLoading(false);
         }, Schedulers.javafx());
+    }
+
+    /// Checks the instance's mods for available updates in the background and, if
+    /// any exist, shows a discreet toast. Controlled by the global
+    /// `autoCheckModUpdates` setting and run at most once per instance per session
+    /// (see [#autoCheckedInstances]); failures and "nothing to update" stay silent.
+    private void autoCheckModUpdates(List<ModListPageSkin.ModInfoObject> items) {
+        if (!config().isAutoCheckModUpdates())
+            return;
+        if (profile == null || instanceId == null || gameVersion == null || !modded.get())
+            return;
+
+        String key = profile.getName() + '/' + instanceId;
+        if (!autoCheckedInstances.add(key))
+            return;
+
+        List<LocalModFile> mods = items.stream()
+                .map(ModListPageSkin.ModInfoObject::getModInfo)
+                .filter(Objects::nonNull)
+                .toList();
+        if (mods.isEmpty()) {
+            // Nothing to check yet; allow a later load (after mods are added) to retry.
+            autoCheckedInstances.remove(key);
+            return;
+        }
+
+        new AddonCheckUpdatesTask<>(DownloadProviders.getDownloadProvider(), gameVersion, mods)
+                .whenComplete(Schedulers.javafx(), (updates, exception) -> {
+                    if (exception == null && updates != null && !updates.isEmpty())
+                        Controllers.showToast(i18n("mods.check_updates.auto.available", updates.size()));
+                })
+                .start();
     }
 
     private void updateSupportedLoaders(ModManager modManager) {
