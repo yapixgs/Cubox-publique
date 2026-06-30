@@ -30,9 +30,9 @@
 set -euo pipefail
 
 # --- Réglages ---------------------------------------------------------------
-# Dépôt GitHub cible « pseudo/repo » (ex. "Yapix/Cubox"). Édite ici ou passe
-# la variable d'environnement GITHUB_REPO.
-GITHUB_REPO="${GITHUB_REPO:-}"
+# Dépôt GitHub cible « pseudo/repo ». Valeur par défaut = le mirroir public de
+# Yapix ; surchargeable via la variable d'environnement GITHUB_REPO.
+GITHUB_REPO="${GITHUB_REPO:-yapixgs/Cubox-publique}"
 
 # Dépôt source sur la forge.
 FORGE_BASE="${FORGE_BASE:-https://forge.oxitablock.com}"
