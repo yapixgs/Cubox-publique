@@ -207,6 +207,21 @@ public final class Config extends ObservableSetting {
         this.promptedVersion.set(promptedVersion);
     }
 
+    @SerializedName("autoCheckModUpdates")
+    private final BooleanProperty autoCheckModUpdates = new SimpleBooleanProperty(true);
+
+    public BooleanProperty autoCheckModUpdatesProperty() {
+        return autoCheckModUpdates;
+    }
+
+    public boolean isAutoCheckModUpdates() {
+        return autoCheckModUpdates.get();
+    }
+
+    public void setAutoCheckModUpdates(boolean autoCheckModUpdates) {
+        this.autoCheckModUpdates.set(autoCheckModUpdates);
+    }
+
     @SerializedName("acceptPreviewUpdate")
     private final BooleanProperty acceptPreviewUpdate = new SimpleBooleanProperty(false);
 

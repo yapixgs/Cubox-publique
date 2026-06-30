@@ -218,6 +218,15 @@ public final class SettingsPage extends ScrollPane {
                 }
 
                 {
+                    LineToggleButton autoCheckModUpdatesPane = new LineToggleButton();
+                    autoCheckModUpdatesPane.setTitle(i18n("settings.launcher.auto_check_mod_updates"));
+                    autoCheckModUpdatesPane.setSubtitle(i18n("settings.launcher.auto_check_mod_updates.subtitle"));
+                    autoCheckModUpdatesPane.selectedProperty().bindBidirectional(config().autoCheckModUpdatesProperty());
+
+                    miscPaneList.getContent().add(autoCheckModUpdatesPane);
+                }
+
+                {
                     BorderPane debugPane = new BorderPane();
 
                     Label left = new Label(i18n("settings.launcher.debug"));
