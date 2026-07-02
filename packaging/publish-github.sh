@@ -18,12 +18,13 @@
 #   1. Installe GitHub CLI :        sudo pacman -S github-cli
 #   2. Connecte-toi à GitHub :      gh auth login        (choisis HTTPS)
 #      puis active git :            gh auth setup-git
-#   3. Crée un jeton de lecture sur la forge (pour télécharger les fichiers des
-#      anciennes releases) : forge → Paramètres → Applications → « Générer un
-#      nouveau jeton » (portée lecture du dépôt). Mets-le dans FORGE_TOKEN.
+#   3. FORGE_TOKEN est OPTIONNEL : le dépôt Cubox de la forge est public, donc
+#      les fichiers des releases se téléchargent sans jeton. Ne renseigne un
+#      FORGE_TOKEN (portée lecture) que si tu passes le dépôt en privé un jour.
 #
 # USAGE
-#   GITHUB_REPO="TonPseudo/Cubox" FORGE_TOKEN="xxxxx" bash packaging/publish-github.sh
+#   GITHUB_REPO="TonPseudo/Cubox" bash packaging/publish-github.sh
+#   # (FORGE_TOKEN="xxxxx" seulement si le dépôt de la forge devient privé)
 #
 #   (ou renseigne les valeurs par défaut ci-dessous une fois pour toutes)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -39,22 +40,28 @@ FORGE_BASE="${FORGE_BASE:-https://forge.oxitablock.com}"
 FORGE_OWNER="${FORGE_OWNER:-Yapix839}"
 FORGE_REPO="${FORGE_REPO:-Cubox}"
 
-# Jeton de lecture de la forge (pour télécharger les assets des releases).
+# Jeton de lecture de la forge — OPTIONNEL (le dépôt est public). Utile
+# uniquement si tu passes le dépôt de la forge en privé.
 FORGE_TOKEN="${FORGE_TOKEN:-}"
+
+# En-tête d'auth forge : ajouté SEULEMENT si un jeton non vide est fourni.
+# (Évite le « 401 » quand on laisse le placeholder ou aucun jeton.)
+FORGE_AUTH=()
+[ -n "$FORGE_TOKEN" ] && FORGE_AUTH=(-H "Authorization: token $FORGE_TOKEN")
 
 # --- Vérifications ----------------------------------------------------------
 need() { command -v "$1" >/dev/null 2>&1 || { echo "❌ Outil manquant : $1"; exit 1; }; }
 need git; need curl; need jq; need gh
 
 [ -n "$GITHUB_REPO" ] || { echo "❌ GITHUB_REPO non défini (ex. export GITHUB_REPO=\"TonPseudo/Cubox\")"; exit 1; }
-[ -n "$FORGE_TOKEN" ] || { echo "❌ FORGE_TOKEN non défini (jeton de lecture de la forge, voir l'en-tête du script)"; exit 1; }
+[ -n "$FORGE_TOKEN" ] || echo "   ℹ️  Pas de FORGE_TOKEN : dépôt public → téléchargement anonyme des releases."
 
 gh auth status >/dev/null 2>&1 || { echo "❌ GitHub CLI non connecté. Lance : gh auth login && gh auth setup-git"; exit 1; }
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-api() { curl -fsSL -H "Authorization: token $FORGE_TOKEN" "$@"; }
+api() { curl -fsSL "${FORGE_AUTH[@]}" "$@"; }
 
 # --- 1/2 : créer le dépôt GitHub s'il n'existe pas, puis pousser main --------
 echo "🌍 1/2  Branche main → GitHub ($GITHUB_REPO)…"
@@ -87,14 +94,19 @@ echo "$releases_json" | jq -c 'reverse[]' | while read -r rel; do
   echo "   ── $tag («$name»)…"
   tmp="$(mktemp -d)"
 
-  # Télécharge chaque asset de la release (avec le jeton forge), en nettoyant
-  # le nom de fichier (GitHub n'aime pas le « : » de l'epoch pacman).
+  # Télécharge chaque asset de la release (dépôt public → sans jeton), en
+  # nettoyant le nom de fichier (GitHub n'aime pas le « : » de l'epoch pacman).
+  # Un échec sur un fichier n'interrompt pas tout le mirroir : on prévient et
+  # on continue (la release est quand même (re)créée avec ses notes).
   echo "$rel" | jq -r '.assets[]?.browser_download_url' | while read -r url; do
     [ -n "$url" ] || continue
     raw="$(basename "$url")"
     safe="${raw//:/-}"           # cubox-1:1.2…  →  cubox-1-1.2…
     echo "        ⬇️  $raw"
-    curl -fsSL -H "Authorization: token $FORGE_TOKEN" -o "$tmp/$safe" "$url"
+    if ! curl -fsSL "${FORGE_AUTH[@]}" -o "$tmp/$safe" "$url"; then
+      echo "        ⚠️  échec du téléchargement de $raw (ignoré)"
+      rm -f "$tmp/$safe"
+    fi
   done
 
   files=("$tmp"/*)
