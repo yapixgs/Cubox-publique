@@ -120,6 +120,7 @@ public class OfflineAccountSkinPane extends StackPane {
                 new MultiFileItem.Option<>(i18n("account.skin.type.alex"), Skin.Type.ALEX),
                 new MultiFileItem.Option<>(i18n("account.skin.type.local_file"), Skin.Type.LOCAL_FILE),
                 new MultiFileItem.Option<>(i18n("account.skin.type.little_skin"), Skin.Type.LITTLE_SKIN),
+                new MultiFileItem.Option<>(i18n("account.skin.type.ely_by"), Skin.Type.ELY_BY),
                 new MultiFileItem.Option<>(i18n("account.skin.type.csl_api"), Skin.Type.CUSTOM_SKIN_LOADER_API)
         ));
 
@@ -195,8 +196,14 @@ public class OfflineAccountSkinPane extends StackPane {
                 case ALEX:
                     break;
                 case LITTLE_SKIN:
+                case ELY_BY: {
+                    // Both are username-based skin providers: create an account there
+                    // under the same username as this offline account, upload a skin,
+                    // and it shows up in game. Only the explanatory text differs.
                     HintPane hint = new HintPane(MessageDialogPane.MessageType.INFO);
-                    hint.setText(i18n("account.skin.type.little_skin.hint"));
+                    hint.setText(i18n(selectedData == Skin.Type.ELY_BY
+                            ? "account.skin.type.ely_by.hint"
+                            : "account.skin.type.little_skin.hint"));
 
                     // Spanning two columns and expanding horizontally
                     GridPane.setColumnSpan(hint, 2);
@@ -212,6 +219,7 @@ public class OfflineAccountSkinPane extends StackPane {
 
                     gridPane.addRow(0, hint);
                     break;
+                }
                 case LOCAL_FILE:
                     gridPane.setPadding(new Insets(0, 0, 0, 10));
                     gridPane.addRow(0, new Label(i18n("account.skin.model")), modelCombobox);
