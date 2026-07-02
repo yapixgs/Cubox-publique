@@ -479,6 +479,19 @@ public final class Controllers {
             config().setPreferredLoginType("offline");
         }
 
+        // Cubox: mini-guide « Premiers pas », affiché une seule fois au tout
+        // premier lancement (config fraîchement créée). Oriente les nouveaux
+        // joueurs : créer un compte hors-ligne, installer une version, ajouter
+        // du contenu, puis jouer.
+        if (ConfigHolder.isNewlyCreated()) {
+            Controllers.dialog(new MessageDialogPane.Builder(
+                    i18n("cubox.welcome.message"),
+                    i18n("cubox.welcome.title"),
+                    MessageType.INFO)
+                    .ok(null)
+                    .build());
+        }
+
         aprilFools:
         if (AprilFools.isEnabled()) {
             int currentYear = LocalDate.now().getYear();
