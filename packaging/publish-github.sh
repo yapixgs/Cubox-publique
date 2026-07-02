@@ -40,12 +40,13 @@ FORGE_BASE="${FORGE_BASE:-https://forge.oxitablock.com}"
 FORGE_OWNER="${FORGE_OWNER:-Yapix839}"
 FORGE_REPO="${FORGE_REPO:-Cubox}"
 
-# Jeton de lecture de la forge — OPTIONNEL (le dépôt est public). Utile
-# uniquement si tu passes le dépôt de la forge en privé.
+# Jeton de lecture de la forge — REQUIS : la forge oxitablock exige une
+# connexion (accès anonyme → 404). Il sert à lister + télécharger les releases.
+# Crée-le : forge → (ta photo, en haut à droite) → Paramètres → Applications →
+# « Générer un nouveau jeton » (coche la portée lecture repository).
 FORGE_TOKEN="${FORGE_TOKEN:-}"
 
-# En-tête d'auth forge : ajouté SEULEMENT si un jeton non vide est fourni.
-# (Évite le « 401 » quand on laisse le placeholder ou aucun jeton.)
+# En-tête d'auth forge : ajouté seulement si un jeton non vide est fourni.
 FORGE_AUTH=()
 [ -n "$FORGE_TOKEN" ] && FORGE_AUTH=(-H "Authorization: token $FORGE_TOKEN")
 
@@ -54,7 +55,6 @@ need() { command -v "$1" >/dev/null 2>&1 || { echo "❌ Outil manquant : $1"; ex
 need git; need curl; need jq; need gh
 
 [ -n "$GITHUB_REPO" ] || { echo "❌ GITHUB_REPO non défini (ex. export GITHUB_REPO=\"TonPseudo/Cubox\")"; exit 1; }
-[ -n "$FORGE_TOKEN" ] || echo "   ℹ️  Pas de FORGE_TOKEN : dépôt public → téléchargement anonyme des releases."
 
 gh auth status >/dev/null 2>&1 || { echo "❌ GitHub CLI non connecté. Lance : gh auth login && gh auth setup-git"; exit 1; }
 
@@ -80,7 +80,20 @@ echo "   ✅ main poussée."
 
 # --- 2/2 : mirroir de toutes les Releases -----------------------------------
 echo "📦 2/2  Releases de la forge → GitHub…"
-releases_json="$(api "$FORGE_BASE/api/v1/repos/$FORGE_OWNER/$FORGE_REPO/releases?limit=100")"
+if ! releases_json="$(api "$FORGE_BASE/api/v1/repos/$FORGE_OWNER/$FORGE_REPO/releases?limit=100")"; then
+  echo "❌ La forge a refusé l'accès aux releases (404/401)."
+  if [ -z "$FORGE_TOKEN" ]; then
+    echo "   → La forge oxitablock exige une connexion : il te faut un jeton de LECTURE."
+    echo "     1) forge → clique ta photo (haut droite) → Paramètres → Applications"
+    echo "     2) « Générer un nouveau jeton » → coche au moins la portée lecture (repository)"
+    echo "     3) copie le jeton et relance :"
+    echo "          FORGE_TOKEN=\"colle-le-jeton\" bash packaging/publish-github.sh"
+  else
+    echo "   → Ton FORGE_TOKEN est invalide/expiré ou n'a pas la portée lecture. Régénère-en un."
+  fi
+  echo "   (Note : la branche main a bien été poussée sur GitHub à l'étape 1/2.)"
+  exit 1
+fi
 count="$(echo "$releases_json" | jq 'length')"
 echo "   $count release(s) trouvée(s) sur la forge."
 
