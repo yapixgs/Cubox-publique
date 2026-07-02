@@ -479,10 +479,9 @@ public final class Controllers {
             config().setPreferredLoginType("offline");
         }
 
-        // Cubox: mini-guide « Premiers pas », affiché une seule fois au tout
-        // premier lancement (config fraîchement créée). Oriente les nouveaux
-        // joueurs : créer un compte hors-ligne, installer une version, ajouter
-        // du contenu, puis jouer.
+        // Cubox: one-time "first steps" guide, shown only on the very first
+        // launch (freshly created config). Points new players to the basics:
+        // create an offline account, install a version, add content, then play.
         if (ConfigHolder.isNewlyCreated()) {
             Controllers.dialog(new MessageDialogPane.Builder(
                     i18n("cubox.welcome.message"),
