@@ -11,9 +11,15 @@ cd "$(dirname "$0")"
 # Annule la réécriture locale du PKGBUILD par makepkg (sera régénérée au build).
 git checkout -- packaging/aur/PKGBUILD 2>/dev/null || true
 
-# Le dépôt est public : on tire en ANONYME en désactivant tout credential helper.
-# Évite l'erreur "identifiants invalides ou expirés" causée par un ancien
-# identifiant mis en cache lors du premier clone.
-GIT_TERMINAL_PROMPT=0 git -c credential.helper= pull
+# ⚠️ Le dépôt est marqué public, mais la forge EXIGE QUAND MÊME UNE CONNEXION.
+# Mesuré depuis un client sans identifiants : 404 sur l'API, sur la page du
+# dépôt et sur les assets. Tirer en anonyme ne peut donc pas fonctionner —
+# l'ancienne version de ce script désactivait le credential helper, ce qui
+# garantissait l'échec au lieu de l'éviter.
+#
+# On laisse donc git utiliser les identifiants configurés. Si tu n'en as pas :
+#   git config --global credential.helper store
+# puis un `git pull` interactif une fois.
+git pull
 cd packaging/aur
 makepkg -sif

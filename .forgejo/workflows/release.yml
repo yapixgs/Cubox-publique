@@ -31,6 +31,11 @@ name: Release — paquets et miroir public
 # sonde) : sans conteneur il passe ; avec conteneur il échoue sur debian,
 # eclipse-temurin ET docker:24-cli — ni l'image ni la libc ne sont donc en
 # cause ; un `git clone` manuel dans le même conteneur passe.
+# NE PAS GÉNÉRALISER : `Cloudox/Helipix` utilise la même combinaison
+# (`container: docker:24-cli` + `actions/checkout@v4`) et ses exécutions
+# RÉUSSISSENT (vérifié le 26/09 : images.yml, succès le 22/09). La cause est
+# donc propre à ce dépôt, et elle n'est pas établie. Ce qui l'est : le clone
+# manuel fonctionne ici, de façon reproductible.
 # Par prudence, `upload-artifact` / `download-artifact` sont écartées elles
 # aussi (mêmes actions JS, même risque, non mesuré) : chaque job publie
 # directement ses fichiers sur la release, sans se les passer.
