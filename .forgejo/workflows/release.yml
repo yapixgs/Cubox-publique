@@ -152,21 +152,42 @@ jobs:
       - name: Vérifier le contenu des archives
         run: |
           echo "Vérifier le contenu des archives" > /tmp/etape
-          set -eu
-          V='${{ steps.version.outputs.VERSION }}'
-          cd dist
-          # Une archive à laquelle il manque l'installeur, c'est exactement la
-          # régression que l'utilisateur découvrirait à notre place.
-          unzip -l "Cubox-$V-windows-x64.zip" | grep -q 'Installer\.exe' \
-            || { echo "::error::Installer.exe absent du zip Windows"; exit 1; }
-          unzip -l "Cubox-$V-windows-x64.zip" | grep -q 'jre-x64/bin/java\.exe' \
-            || { echo "::error::jre-x64 absent ou incomplet (zip Windows)"; exit 1; }
-          tar -tzf "Cubox-$V-linux-x64.tar.gz" | grep -q 'install\.sh' \
-            || { echo "::error::install.sh absent du tar.gz Linux"; exit 1; }
-          tar -tzf "Cubox-$V-linux-x64.tar.gz" | grep -q 'jre-x64/bin/java' \
-            || { echo "::error::jre-x64 absent ou incomplet (tar.gz Linux)"; exit 1; }
-          sha256sum -c "Cubox-$V-SHA256.txt"
-          ls -lh
+          # `set -x` et la trace complète : cette étape a échoué sans dire quoi,
+          # et elle passe pourtant sur les mêmes artefacts dans la même image
+          # hors CI. Tant qu'on ne voit pas ce qu'elle voit, on devine.
+          set -u
+          verifier() {
+            set -x
+            V="$1"
+            cd dist || return 1
+            ls -lh
+            echo "--- contenu du zip Windows (extrait) ---"
+            unzip -l "Cubox-$V-windows-x64.zip" | head -20
+            echo "--- contenu du tar Linux (extrait) ---"
+            tar -tzf "Cubox-$V-linux-x64.tar.gz" | head -10
+
+            # Une archive à laquelle il manque l'installeur, c'est exactement
+            # la régression que l'utilisateur découvrirait à notre place.
+            unzip -l "Cubox-$V-windows-x64.zip" > /tmp/zip.txt 2>&1
+            grep -q 'Installer\.exe'        /tmp/zip.txt || { echo "MANQUE: Installer.exe"; return 1; }
+            grep -q 'jre-x64/bin/java\.exe' /tmp/zip.txt || { echo "MANQUE: jre-x64 (Windows)"; return 1; }
+
+            tar -tzf "Cubox-$V-linux-x64.tar.gz" > /tmp/tar.txt 2>&1
+            grep -q 'install\.sh'      /tmp/tar.txt || { echo "MANQUE: install.sh"; return 1; }
+            grep -q 'jre-x64/bin/java'  /tmp/tar.txt || { echo "MANQUE: jre-x64 (Linux)"; return 1; }
+
+            sha256sum -c "Cubox-$V-SHA256.txt" || { echo "MANQUE: sommes de contrôle invalides"; return 1; }
+            return 0
+          }
+          rm -f /tmp/verif.ok
+          verifier '${{ steps.version.outputs.VERSION }}' > /tmp/verif.log 2>&1 && touch /tmp/verif.ok
+          tail -n 40 /tmp/verif.log
+          if [ -f /tmp/verif.ok ]; then
+            echo "archives conformes"
+          else
+            echo "::error::vérification des archives en échec — trace ci-dessus et dans le ticket"
+            exit 1
+          fi
 
       - name: Publier la release sur la forge
         env:
@@ -305,6 +326,11 @@ jobs:
             echo "## Étape en échec"
             echo '```'
             cat /tmp/etape 2>/dev/null || echo "(avant la première étape marquée)"
+            echo '```'
+            echo
+            echo "## Vérification des archives"
+            echo '```'
+            tail -n 60 /tmp/verif.log 2>/dev/null || echo "(pas encore atteinte)"
             echo '```'
             echo
             echo "## 120 dernières lignes du build"
