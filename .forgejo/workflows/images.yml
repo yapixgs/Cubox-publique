@@ -142,36 +142,56 @@ jobs:
         env:
           PRIMARY: ${{ steps.tags.outputs.PRIMARY }}
         run: |
-          set -eu
-          # Pousser une image qui ne démarre même pas, c'est publier une panne.
-          NOM=smoke-site-$$
-          docker run --rm -d --name "$NOM" "$IMG:$PRIMARY"
-          ok=0
-          for i in $(seq 1 15); do
-            if docker exec "$NOM" wget -qO- http://127.0.0.1:8080/healthz >/dev/null 2>&1; then
-              echo "démarré (tentative $i)"; ok=1; break
+          set -u
+          # Même mécanique que ci.yml : la sortie est capturée dans un fichier,
+          # et le succès passe par un témoin plutôt que par le code de retour
+          # (la sortie traverse un `tee`, et ash n'a pas `pipefail` partout).
+          rm -f /tmp/smoke.ok
+          fumee() {
+            set -x
+            NOM="smoke-site-$$"
+            docker run --rm -d --name "$NOM" "$IMG:$PRIMARY" || return 1
+
+            ok=0
+            i=0
+            while [ "$i" -lt 15 ]; do
+              if docker exec "$NOM" wget -qO- http://127.0.0.1:8080/healthz >/dev/null 2>&1; then
+                ok=1; break
+              fi
+              i=$((i + 1))
+              sleep 2
+            done
+
+            if [ "$ok" = "1" ]; then
+              docker exec "$NOM" wget -qO- http://127.0.0.1:8080/ | grep -q 'Cubox' \
+                || { echo "ECHEC: la page ne contient pas 'Cubox'"; ok=0; }
+              # Une variable non substituée laisse nginx démarrer mais casse le
+              # relais : panne silencieuse, exactement ce qu'on veut attraper.
+              if docker exec "$NOM" grep -q 'CUBOX_RELEASES_BASE' /etc/nginx/conf.d/default.conf; then
+                echo "ECHEC: variables CUBOX_* non substituées"
+                ok=0
+              fi
+              # Le namespace applique `restricted` : un pod root serait refusé
+              # à l'admission. Autant le voir ici plutôt que dans Argo.
+              uid="$(docker exec "$NOM" id -u)"
+              [ "$uid" = "10001" ] || { echo "ECHEC: UID $uid au lieu de 10001"; ok=0; }
+            else
+              echo "ECHEC: l image ne répond pas en 30 s"
             fi
-            sleep 2
-          done
-          if [ "$ok" = "1" ]; then
-            docker exec "$NOM" wget -qO- http://127.0.0.1:8080/ | grep -q 'Cubox' \
-              || { echo "::error::la page ne contient pas 'Cubox'"; ok=0; }
-            # Une variable non substituée laisse nginx démarrer mais casse le
-            # relais : panne silencieuse, exactement ce qu'on veut attraper.
-            if docker exec "$NOM" grep -q '\${CUBOX_' /etc/nginx/conf.d/default.conf; then
-              echo "::error::variables \${CUBOX_*} non substituées"
-              ok=0
-            fi
-            # Le conteneur doit tourner sans privilège : le namespace applique
-            # `restricted`, un pod root serait refusé à l'admission.
-            uid="$(docker exec "$NOM" id -u)"
-            [ "$uid" = "10001" ] || { echo "::error::UID $uid au lieu de 10001"; ok=0; }
+
+            docker logs "$NOM" 2>&1 | tail -20 || true
+            docker stop "$NOM" >/dev/null 2>&1 || true
+            [ "$ok" = "1" ] && touch /tmp/smoke.ok
+            return 0
+          }
+          fumee 2>&1 | tee /tmp/smoke.log
+          if [ -f /tmp/smoke.ok ]; then
+            echo "test de fumée OK"
           else
-            echo "::error::l image ne répond pas en 30 s"
+            echo "::error::test de fumée en échec"
+            tail -n 40 /tmp/smoke.log
+            exit 1
           fi
-          docker logs "$NOM" || true
-          docker stop "$NOM" >/dev/null 2>&1 || true
-          [ "$ok" = "1" ]
 
       - name: Publier sur la forge
         id: push
@@ -185,9 +205,19 @@ jobs:
           # Le digest est ce qu'il faut épingler dans Cloudox/infra (règle 5 :
           # aucun tag flottant dans les manifestes). L'afficher ici évite un
           # aller-retour manuel pour aller le chercher.
-          DIGEST="$(docker inspect --format='{{index .RepoDigests 0}}' "$IMG:$PRIMARY")"
+          # `index .RepoDigests 0` échoue durement quand la liste est vide —
+          # ce qui arrive avec le magasin d'images containerd et les manifestes
+          # d'attestation produits par buildx. L'image est DÉJÀ poussée à ce
+          # stade : perdre la publication parce qu'on n'a pas su lire le digest
+          # serait absurde. On tente deux façons, puis on laisse vide.
+          DIGEST="$(docker inspect --format='{{join .RepoDigests "\n"}}' "$IMG:$PRIMARY" 2>/dev/null | head -n1)"
+          if [ -z "$DIGEST" ]; then
+            DIGEST="$(docker buildx imagetools inspect "$IMG:$PRIMARY" 2>/dev/null \
+                      | awk '/^Digest:/ {print $2}' | head -n1)"
+            [ -n "$DIGEST" ] && DIGEST="$IMG@$DIGEST"
+          fi
           echo "DIGEST=$DIGEST" >> "$GITHUB_OUTPUT"
-          echo "digest : $DIGEST"
+          echo "digest : ${DIGEST:-<illisible, voir la page du paquet sur la forge>}"
 
       # Copie dans Zot, le registre du cluster. Le chemin reprend
       # `forge.oxitablock.com/...` À L'IDENTIQUE : containerd est configuré
