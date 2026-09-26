@@ -81,3 +81,13 @@ language-subtag-registry
 !/.gemini/config.yaml
 .codex
 /.gradle-*/
+
+# Artefacts de l'installeur Windows : produits par `makensis` pendant
+# `make-release.sh`, puis déplacés dans dist/. Un Installer.exe oublié à la
+# racine de packaging/installer/ serait un binaire de 475 Ko commité par
+# inadvertance — et surtout la mauvaise version, gardée pour toujours par
+# l'historique.
+/packaging/installer/Installer.exe
+/packaging/aur/*.pkg.tar.zst
+/packaging/aur/src/
+/packaging/aur/pkg/
