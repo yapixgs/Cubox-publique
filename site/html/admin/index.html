@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr" data-theme="cubox">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0a0f1c">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Cubox · Admin</title>
+    <link rel="icon" type="image/png" href="/cubox.png">
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container row topbar-inner">
+        <a class="brand row" href="/">
+          <img src="/cubox.png" alt="" width="40" height="40">
+          <span>Cubox <small>admin</small></span>
+        </a>
+        <nav class="row nav">
+          <a href="/">Page publique</a>
+          <a class="btn btn-ghost" href="https://forge.oxitablock.com/Cloudox/Cubox/actions" rel="noopener">CI</a>
+          <a class="btn btn-ghost" href="/oauth2/sign_out?rd=https%3A%2F%2Fcubox.yabox.wasabout.net%2F">Se déconnecter</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="section">
+        <div class="container">
+          <span class="badge">Accès réservé · groupe Cloudox-Cubox</span>
+          <h1>Téléchargements</h1>
+          <p class="muted">
+            Compteurs fournis par l'API GitHub du miroir public
+            <span class="mono">yapixgs/Cubox-publique</span>. Ils comptent les
+            téléchargements d'assets de release, pas les visites du site.
+          </p>
+
+          <div id="stats" class="stack" style="margin-top:1.75rem">
+            <div class="card skeleton"><p class="muted">Chargement…</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>Liens utiles</h2>
+          <div class="grid grid-3">
+            <article class="card">
+              <h3>Exécutions CI</h3>
+              <p>Build du launcher, image du site, publication des versions.</p>
+              <a class="btn btn-outline" href="https://forge.oxitablock.com/Cloudox/Cubox/actions" rel="noopener">Ouvrir</a>
+            </article>
+            <article class="card">
+              <h3>Releases (forge)</h3>
+              <p>Source de vérité. Non accessible sans connexion.</p>
+              <a class="btn btn-outline" href="https://forge.oxitablock.com/Cloudox/Cubox/releases" rel="noopener">Ouvrir</a>
+            </article>
+            <article class="card">
+              <h3>Miroir public</h3>
+              <p>Ce que voient réellement les utilisateurs.</p>
+              <a class="btn btn-outline" href="https://github.com/yapixgs/Cubox-publique/releases" rel="noopener">Ouvrir</a>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <p class="muted small">
+          Cette page n'est pas un tableau de bord d'infrastructure : elle ne
+          sait rien de l'état du cluster. Pour ça, Grafana et Argo CD.
+        </p>
+      </div>
+    </footer>
+
+    <script src="/admin/admin.js"></script>
+  </body>
+</html>
