@@ -151,6 +151,7 @@ jobs:
 
       - name: Vérifier le contenu des archives
         run: |
+          echo "Vérifier le contenu des archives" > /tmp/etape
           set -eu
           V='${{ steps.version.outputs.VERSION }}'
           cd dist
@@ -172,6 +173,7 @@ jobs:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
+          echo "Publier la release sur la forge" > /tmp/etape
           set -eu
           TAG="v$VERSION"
           API="$GITHUB_SERVER_URL/api/v1/repos/$GITHUB_REPOSITORY"
@@ -203,6 +205,7 @@ jobs:
 
       - name: Installer gh
         run: |
+          echo "Installer gh" > /tmp/etape
           set -eu
           # Dépôt officiel GitHub CLI, vérifié par sa clé : un `curl | bash` sur
           # une URL non signée, dans une CI qui manipule un jeton, non.
@@ -219,6 +222,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_MIRROR_TOKEN }}
           VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
+          echo "Miroiter vers GitHub" > /tmp/etape
           set -eu
           if [ -z "${GH_TOKEN:-}" ]; then
             echo "::error::secret GH_MIRROR_TOKEN absent."
@@ -242,6 +246,7 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
+          echo "Vérifier que le miroir est réellement téléchargeable" > /tmp/etape
           set -eu
           TAG="v$VERSION"
           # SANS en-tête d'authentification, EXPRÈS : c'est ce que verra un
@@ -295,6 +300,11 @@ jobs:
             echo "## dist/"
             echo '```'
             ls -lh dist/ 2>/dev/null || echo "(dist/ absent)"
+            echo '```'
+            echo
+            echo "## Étape en échec"
+            echo '```'
+            cat /tmp/etape 2>/dev/null || echo "(avant la première étape marquée)"
             echo '```'
             echo
             echo "## 120 dernières lignes du build"
