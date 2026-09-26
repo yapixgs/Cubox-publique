@@ -52,37 +52,52 @@ Résultat dans `HMCL/build/libs/` :
 | `Cubox-<version>.sh`  | Linux | `sh Cubox-<version>.sh` |
 
 > ℹ️ Ces 3 fichiers ont **besoin de Java 21 installé** sur la machine (le `.exe`
-> et le `.sh` ne font que trouver le Java du système). Pour un paquet qui n'a
-> **besoin de rien**, voir « Publier une version finale » ci-dessous.
+> et le `.sh` ne font que trouver le Java du système). Les paquets publiés, eux,
+> embarquent leur propre JRE.
 
-## Publier une version finale (paquets « besoin de rien »)
-
-Pour distribuer Cubox à des gens qui **n'ont pas Java** (ex. des potes sous
-Windows), on génère des paquets qui **embarquent un JRE Java 21** : l'utilisateur
-décompresse et lance, sans rien installer.
+## Construire les paquets distribuables
 
 ```bash
-./packaging/make-release.sh          # ou : ./packaging/make-release.sh 1.0
+./packaging/make-release.sh          # ou : ./packaging/make-release.sh 1.3
 ```
 
-Le script compile Cubox, télécharge les JRE Temurin 21 et produit dans `dist/` :
+Le script compile Cubox, télécharge les JRE Temurin 21 et produit dans `dist/`
+des paquets qui **n'ont besoin de rien** sur la machine cible :
 
-| Paquet | Pour | Utilisation |
+| Paquet | Contient | Utilisation |
 |---|---|---|
-| `Cubox-<version>-windows-x64.zip`  | Windows (rien à installer) | décompresser → double-clic sur `Cubox.exe` |
-| `Cubox-<version>-linux-x64.tar.gz` | Linux (rien à installer)   | décompresser → `./Cubox.sh` |
-| `cubox-<version>-*.pkg.tar.zst`    | Arch Linux / pacman        | `sudo pacman -U cubox-*.pkg.tar.zst` |
+| `Cubox-<version>-windows-x64.zip`  | `Installer.exe` + `Cubox.exe` + `jre-x64\` | décompresser → lancer `Installer.exe` |
+| `Cubox-<version>-linux-x64.tar.gz` | `install.sh` + `Cubox.sh` + `jre-x64/`      | décompresser → `./install.sh` |
+| `cubox-<version>-*.pkg.tar.zst`    | paquet pacman                                | `sudo pacman -U cubox-*.pkg.tar.zst` |
 
-> Le paquet **Arch/pacman** n'est généré que si `makepkg` est présent (donc sur
-> Arch & dérivés). Il s'installe proprement dans le système (icône au menu), à la
-> différence des deux archives portables ci-dessus.
+Les deux premiers restent utilisables **en mode portable** : les binaires sont
+dans l'archive, l'installeur n'est qu'une commodité.
 
-Il suffit ensuite de **téléverser ces fichiers dans une *Release*** sur la forge.
-(Ces paquets ne sont créés **que pour les versions finales** ; au quotidien, on
-compile en local — voir la section précédente.)
+- **Windows** — `Installer.exe` (NSIS, compilé sous Linux par `makensis`)
+  installe dans `%LOCALAPPDATA%\Programs\Cubox` **sans élévation**, pose les
+  raccourcis et l'entrée « Applications et fonctionnalités », et fournit un
+  désinstalleur.
+- **Linux** — `install.sh` installe **sans sudo** dans
+  `~/.local/share/cubox`, conformément à XDG, avec entrée de menu, icône et
+  commande `cubox`. `uninstall.sh` **conserve les données** par défaut.
+- Le paquet **Arch/pacman** n'est généré que si `makepkg` est présent.
 
-> Le `.exe` trouve son Java dans le dossier `jre-x64\` placé à côté de lui : tant
-> que ce dossier reste avec l'exécutable, aucune installation de Java n'est requise.
+> Sans le paquet `nsis`, le `.zip` Windows est produit **sans** installeur et
+> le script le dit bruyamment : une archive silencieusement amputée est
+> exactement le genre de régression qu'on ne découvre que chez l'utilisateur.
+
+## Publier une version
+
+**Il n'y a rien à téléverser à la main.** Poser un tag suffit :
+
+```bash
+git tag v1.3 && git push origin v1.3
+```
+
+La CI construit, vérifie le contenu des archives, publie sur la forge, miroite
+vers le dépôt public et **contrôle que le téléchargement anonyme fonctionne**.
+
+👉 Procédure complète : [`docs/PUBLIER-UNE-VERSION.md`](docs/PUBLIER-UNE-VERSION.md)
 
 ## Lancer
 
@@ -92,6 +107,30 @@ java -jar Cubox-<version>.jar
 
 Puis : *Ajouter un compte* → **Hors-ligne** → choisir un pseudo. Aucun compte
 Microsoft requis.
+
+## Documentation
+
+| Document | Contenu |
+|---|---|
+| [`docs/GUIDE_MINECRAFT_DEBUTANT.md`](docs/GUIDE_MINECRAFT_DEBUTANT.md) | Pour débuter : solo, LAN, serveurs, mods |
+| [`docs/PUBLIER-UNE-VERSION.md`](docs/PUBLIER-UNE-VERSION.md) | Sortir une version, et ce que la CI vérifie |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Fonctionnalités et pistes |
+| [`CHANGELOG.md`](CHANGELOG.md) | Journal des versions |
+| [`site/README.md`](site/README.md) | La page publique |
+| [`AGENTS.md`](AGENTS.md) | Conventions de code |
+
+## Structure du dépôt
+
+| Dossier | Rôle |
+|---|---|
+| `HMCL/`, `HMCLCore/`, `HMCLBoot/` | le launcher (hérité de HMCL) |
+| `packaging/` | paquets distribuables, installeurs, PKGBUILD Arch |
+| `site/` | la page <https://cubox.yabox.wasabout.net> |
+| `.forgejo/workflows/` | intégration continue (runner Cloudox) |
+| `docs/` | documentation |
+
+Le déploiement du site vit dans un autre dépôt :
+[`Cloudox/infra`](https://forge.oxitablock.com/Cloudox/infra) → `tenants/cubox/`.
 
 ---
 
