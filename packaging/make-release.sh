@@ -15,9 +15,19 @@
 #   ./packaging/make-release.sh 1.0        # force le numéro de version
 #
 # Sorties (dans dist/) :
-#   Cubox-<version>-windows-x64.zip     -> décompresser, double-clic sur Cubox.exe
-#   Cubox-<version>-linux-x64.tar.gz    -> décompresser, lancer ./Cubox.sh
+#   Cubox-<version>-windows-x64.zip     -> décompresser, lancer Installer.exe
+#   Cubox-<version>-linux-x64.tar.gz    -> décompresser, lancer ./install.sh
 #   Cubox-<version>-SHA256.txt          -> sommes de contrôle
+#
+# Depuis la 1.3, chaque archive contient un INSTALLEUR en plus du programme :
+# l'utilisateur extrait, lance un fichier, et se retrouve avec Cubox installé
+# proprement (raccourcis, entrée de menu, désinstalleur). Les binaires restent
+# utilisables tels quels pour qui préfère le mode portable.
+#
+# `makensis` (paquet `nsis`) est nécessaire pour l'installeur Windows. S'il est
+# absent, le .zip est produit SANS installeur — et le script le dit fort, parce
+# qu'une archive silencieusement amputée est exactement le genre de régression
+# qu'on ne découvre que chez l'utilisateur.
 #
 set -euo pipefail
 
@@ -85,19 +95,45 @@ fetch_jre "$TEMURIN_WIN"   "$WIN_ZIP"
 fetch_jre "$TEMURIN_LINUX" "$LIN_TGZ"
 
 # --- 3/4 : paquet Windows ---------------------------------------------------
-echo "🪟 3/4  Paquet Windows (Cubox.exe + jre-x64\\)…"
+echo "🪟 3/4  Paquet Windows (Installer.exe + Cubox.exe + jre-x64\\)…"
 windir="$DIST/Cubox-$VERSION-windows-x64"
 rm -rf "$windir"; mkdir -p "$windir"
 cp "$exe" "$windir/Cubox.exe"
 extract_as_jre "$WIN_ZIP" "$windir"
+
+if command -v makensis >/dev/null 2>&1; then
+  echo "   🧰 Compilation de l'installeur (makensis)…"
+  # On compile DEPUIS packaging/installer : NSIS résout `MUI_ICON "cubox.ico"`
+  # par rapport au répertoire courant, pas au dossier du script. Lancé depuis
+  # la racine, il ne trouverait pas l'icône.
+  #
+  # -DVERSION : le numéro apparaît dans le titre de la fenêtre et dans
+  # « Applications et fonctionnalités ». Sans lui, NSIS retombe sur 0.0 et
+  # l'entrée de désinstallation affiche une version mensongère.
+  ( cd packaging/installer && makensis -V2 -DVERSION="$VERSION" cubox.nsi )
+  mv packaging/installer/Installer.exe "$windir/Installer.exe"
+  echo "   → Installer.exe ($(du -h "$windir/Installer.exe" | cut -f1))"
+else
+  echo "   ⚠️  makensis absent → le .zip Windows N'AURA PAS d'installeur."
+  echo "   ⚠️  Installe le paquet « nsis » pour produire une archive complète."
+fi
+
 ( cd "$DIST" && zip -qr "Cubox-$VERSION-windows-x64.zip" "Cubox-$VERSION-windows-x64" )
 
 # --- 4/4 : paquet Linux -----------------------------------------------------
-echo "🐧 4/4  Paquet Linux (Cubox.sh + jre-x64/)…"
+echo "🐧 4/4  Paquet Linux (install.sh + Cubox.sh + jre-x64/)…"
 lindir="$DIST/Cubox-$VERSION-linux-x64"
 rm -rf "$lindir"; mkdir -p "$lindir"
 cp "$SH" "$lindir/Cubox.sh"; chmod +x "$lindir/Cubox.sh"
 extract_as_jre "$LIN_TGZ" "$lindir"
+
+cp packaging/installer/install.sh packaging/installer/uninstall.sh "$lindir/"
+chmod +x "$lindir/install.sh" "$lindir/uninstall.sh"
+cp HMCL/image/cubox.png "$lindir/cubox.png"
+# install.sh lit ce fichier pour afficher la version : sans lui il annonce
+# « inconnue », ce qui rend le support impossible.
+printf '%s\n' "$VERSION" > "$lindir/VERSION"
+
 ( cd "$DIST" && tar -czf "Cubox-$VERSION-linux-x64.tar.gz" "Cubox-$VERSION-linux-x64" )
 
 # --- Bonus : paquet Arch / pacman (si makepkg est dispo) --------------------
@@ -136,7 +172,7 @@ echo "✅ Terminé. Paquets dans $DIST/ :"
 ls -lh "$DIST"/ 2>/dev/null
 echo
 echo "👉 Téléverse ces fichiers dans une *Release* sur la forge."
-echo "   Windows     : décompresser le .zip → double-clic sur Cubox.exe (rien à installer)."
-echo "   Linux       : décompresser le .tar.gz → ./Cubox.sh"
+echo "   Windows     : décompresser le .zip → lancer Installer.exe"
+echo "   Linux       : décompresser le .tar.gz → ./install.sh"
 [ -n "$pkg_built" ] && \
 echo "   Arch/pacman : sudo pacman -U $pkg_built"

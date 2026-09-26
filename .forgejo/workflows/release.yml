@@ -1,0 +1,343 @@
+---
+name: Release — paquets et miroir public
+
+# CE QUE CE WORKFLOW REMPLACE
+# ---------------------------
+# Sortir une version demandait jusqu'ici de lancer `make-release.sh` à la main
+# sur un poste Arch, de téléverser quatre fichiers un par un, puis de penser à
+# lancer `publish-github.sh`. Trois étapes manuelles, donc trois occasions
+# d'oublier — et un oubli sur la dernière signifie que les utilisateurs ne
+# voient jamais la nouvelle version.
+#
+# DÉCLENCHEMENT
+#   tag vX.Y   -> construit, publie sur la forge, miroite vers GitHub
+#   manuel     -> mêmes étapes, tag explicite (pour rejouer une publication)
+#
+# POURQUOI LE MIROIR GITHUB EST OBLIGATOIRE, PAS UN BONUS
+# --------------------------------------------------------
+# La forge exige une connexion, y compris pour un dépôt public. Mesuré depuis
+# un conteneur sans identifiants :
+#     /api/v1/version                                      200
+#     /api/v1/repos/Cloudox/Cubox                          404
+#     /Cloudox/Cubox/releases/download/v1.2/…SHA256.txt    404
+# Sans miroir, PERSONNE ne peut télécharger Cubox et la page
+# cubox.yabox.wasabout.net n'afficherait que des liens morts.
+# La forge est la source de vérité ; GitHub est le canal de distribution.
+#
+# POURQUOI AUCUN `actions/*` DANS LES JOBS CONTENEURISÉS
+# -------------------------------------------------------
+# `actions/checkout@v4` échoue systématiquement dès qu'un job déclare un
+# `container:` sur ce runner. Établi par bissection le 26/09/2026 (13 jobs
+# sonde) : sans conteneur il passe ; avec conteneur il échoue sur debian,
+# eclipse-temurin ET docker:24-cli — ni l'image ni la libc ne sont donc en
+# cause ; un `git clone` manuel dans le même conteneur passe.
+# Par prudence, `upload-artifact` / `download-artifact` sont écartées elles
+# aussi (mêmes actions JS, même risque, non mesuré) : chaque job publie
+# directement ses fichiers sur la release, sans se les passer.
+#
+# SECRETS REQUIS (Paramètres du dépôt -> Actions -> Secrets)
+#   GH_MIRROR_TOKEN  jeton GitHub classique, portée `repo`, sur le compte
+#                    propriétaire de yapixgs/Cubox-publique.
+# Sans lui l'étape de miroir échoue explicitement — jamais en silence.
+#
+# ⚠️ Le nom NE PEUT PAS commencer par `GITHUB_` : la forge réserve ce préfixe
+# et refuse la création. Vérifié :
+#     PUT …/actions/secrets/GITHUB_MIRROR_TOKEN -> 400 « invalid secret name »
+#     PUT …/actions/secrets/GH_MIRROR_TOKEN     -> 201
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag à publier (ex. v1.3)"
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  MIROIR: yapixgs/Cubox-publique
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  paquets:
+    name: paquets Windows + Linux, forge et miroir
+    runs-on: cloudox
+    container:
+      image: docker.io/library/eclipse-temurin:21-jdk-noble
+    steps:
+      - name: Outils
+        run: |
+          set -eu
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends \
+            git ca-certificates curl zip unzip tar nsis jq gpg
+
+      - name: Récupérer le dépôt
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          # Clone complet (pas de --depth) : make-release.sh et le PKGBUILD
+          # dérivent la version de l'historique ; un clone superficiel donne
+          # un numéro faux.
+          git init -q .
+          git config --global --add safe.directory "$PWD"
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          entete="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
+          git -c http.extraheader="$entete" fetch --tags origin
+          git checkout -q "$GITHUB_SHA"
+
+      - name: Déterminer la version
+        id: version
+        run: |
+          set -eu
+          case "$GITHUB_EVENT_NAME" in
+            workflow_dispatch) TAG='${{ github.event.inputs.tag }}' ;;
+            push)              TAG="${GITHUB_REF##refs/tags/}" ;;
+            *) echo "::error::déclenchement inattendu : $GITHUB_EVENT_NAME"; exit 1 ;;
+          esac
+          VERSION="${TAG#v}"
+          echo "TAG=$TAG"         >> "$GITHUB_OUTPUT"
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "publication de $TAG (version $VERSION)"
+
+      - name: Vérifier que le code porte bien cette version
+        run: |
+          set -eu
+          # Un tag v1.3 qui embarque du code versionné 1.2 produit des binaires
+          # dont on ne peut plus rien déduire. On refuse, comme Helipix le fait
+          # pour pyproject.toml.
+          attendu='${{ steps.version.outputs.VERSION }}'
+          reel="$(sed -n 's/^versionRoot=//p' config/project.properties | tr -d ' \r')"
+          if [ "$reel" != "$attendu" ]; then
+            echo "::error::config/project.properties dit « $reel », le tag dit « $attendu »"
+            exit 1
+          fi
+          echo "OK : le code est bien en $attendu"
+
+      - name: Construire
+        env:
+          # Facultative : sans elle, seul le navigateur CurseForge est
+          # indisponible, le reste se construit normalement.
+          CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
+        run: |
+          set -eu
+          chmod +x gradlew packaging/make-release.sh
+
+          # ⚠️ `env -u GITHUB_SHA` N'EST PAS COSMÉTIQUE.
+          # HMCL/build.gradle.kts dérive la version ainsi :
+          #     shortCommit = getenv("GITHUB_SHA")?.substring(0, 7)
+          #     version = if (shortCommit.isNullOrBlank()) versionRoot
+          #               else "$versionRoot.unofficial-$shortCommit"
+          # Forgejo Actions exporte GITHUB_SHA. Sans le retirer, la release
+          # s'appellerait « Cubox-1.3.unofficial-a1b2c3d » — et c'est ce
+          # numéro-là qui serait AFFICHÉ DANS LE LAUNCHER, même si les archives
+          # portent le bon nom (make-release.sh reçoit la version en argument,
+          # mais elle ne redescend pas dans hmcl.properties).
+          #
+          # On le RETIRE plutôt que de le vider : "".substring(0, 7) lève une
+          # StringIndexOutOfBoundsException côté Gradle.
+          env -u GITHUB_SHA -u BUILD_NUMBER \
+            ./packaging/make-release.sh '${{ steps.version.outputs.VERSION }}'
+
+      - name: Vérifier le contenu des archives
+        run: |
+          set -eu
+          V='${{ steps.version.outputs.VERSION }}'
+          cd dist
+          # Une archive à laquelle il manque l'installeur, c'est exactement la
+          # régression que l'utilisateur découvrirait à notre place.
+          unzip -l "Cubox-$V-windows-x64.zip" | grep -q 'Installer\.exe' \
+            || { echo "::error::Installer.exe absent du zip Windows"; exit 1; }
+          unzip -l "Cubox-$V-windows-x64.zip" | grep -q 'jre-x64/bin/java\.exe' \
+            || { echo "::error::jre-x64 absent ou incomplet (zip Windows)"; exit 1; }
+          tar -tzf "Cubox-$V-linux-x64.tar.gz" | grep -q 'install\.sh' \
+            || { echo "::error::install.sh absent du tar.gz Linux"; exit 1; }
+          tar -tzf "Cubox-$V-linux-x64.tar.gz" | grep -q 'jre-x64/bin/java' \
+            || { echo "::error::jre-x64 absent ou incomplet (tar.gz Linux)"; exit 1; }
+          sha256sum -c "Cubox-$V-SHA256.txt"
+          ls -lh
+
+      - name: Publier la release sur la forge
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          set -eu
+          TAG="v$VERSION"
+          API="$GITHUB_SERVER_URL/api/v1/repos/$GITHUB_REPOSITORY"
+          # Idempotent : rejouer une publication doit mettre à jour, pas échouer.
+          ID="$(curl -sS -H "Authorization: token $TOKEN" \
+                  "$API/releases/tags/$TAG" | jq -r '.id // empty')"
+          if [ -z "$ID" ]; then
+            ID="$(curl -sSf -X POST -H "Authorization: token $TOKEN" \
+                    -H 'Content-Type: application/json' \
+                    -d "$(jq -n --arg t "$TAG" --arg v "$VERSION" \
+                          '{tag_name:$t, name:("Cubox " + $v), draft:false, prerelease:false}')" \
+                    "$API/releases" | jq -r '.id')"
+            echo "release créée (id=$ID)"
+          else
+            echo "release existante réutilisée (id=$ID)"
+          fi
+          for f in dist/*; do
+            nom="$(basename "$f")"
+            ancien="$(curl -sS -H "Authorization: token $TOKEN" "$API/releases/$ID/assets" \
+                      | jq -r --arg n "$nom" '.[] | select(.name == $n) | .id')"
+            if [ -n "$ancien" ]; then
+              curl -sS -X DELETE -H "Authorization: token $TOKEN" \
+                "$API/releases/$ID/assets/$ancien" >/dev/null
+            fi
+            echo "  ↑ $nom"
+            curl -sSf -X POST -H "Authorization: token $TOKEN" \
+              -F "attachment=@$f" "$API/releases/$ID/assets?name=$nom" >/dev/null
+          done
+
+      - name: Installer gh
+        run: |
+          set -eu
+          # Dépôt officiel GitHub CLI, vérifié par sa clé : un `curl | bash` sur
+          # une URL non signée, dans une CI qui manipule un jeton, non.
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+            | gpg --dearmor -o /usr/share/keyrings/githubcli.gpg
+          # Une seule ligne : dans un bloc YAML `|`, une continuation qui
+          # repartirait en colonne 1 terminerait le bloc.
+          echo "deb [signed-by=/usr/share/keyrings/githubcli.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
+          apt-get update -qq
+          apt-get install -y -qq gh
+
+      - name: Miroiter vers GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GH_MIRROR_TOKEN }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          set -eu
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::secret GH_MIRROR_TOKEN absent."
+            echo "::error::Sans miroir GitHub, PERSONNE ne peut télécharger Cubox :"
+            echo "::error::la forge refuse l accès anonyme (404 sur les assets)."
+            exit 1
+          fi
+          TAG="v$VERSION"
+          # On publie les artefacts déjà construits ET VÉRIFIÉS, plutôt que de
+          # relancer publish-github.sh qui les re-téléchargerait depuis la
+          # forge : un aller-retour inutile, et une occasion de plus de publier
+          # autre chose que ce qui a été testé.
+          gh release view "$TAG" --repo "$MIROIR" >/dev/null 2>&1 \
+            || gh release create "$TAG" --repo "$MIROIR" \
+                 --title "Cubox $VERSION" \
+                 --notes "Publié automatiquement depuis $GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+          gh release upload "$TAG" dist/* --repo "$MIROIR" --clobber
+          echo "assets miroités vers $MIROIR"
+
+      - name: Vérifier que le miroir est réellement téléchargeable
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          set -eu
+          TAG="v$VERSION"
+          # SANS en-tête d'authentification, EXPRÈS : c'est ce que verra un
+          # visiteur. Vérifier avec un jeton ne prouverait rien — c'est
+          # précisément l'erreur qui aurait laissé croire que la forge suffisait.
+          echo "— liste des versions (API publique)"
+          curl -sSf -H 'User-Agent: cubox-ci' \
+            "https://api.github.com/repos/$MIROIR/releases/tags/$TAG" \
+            | jq -r '.tag_name, (.assets[] | "  " + .name + "  " + (.size|tostring) + " o")'
+          echo "— téléchargement anonyme d un asset"
+          code="$(curl -sSL -o /dev/null -w '%{http_code}' \
+            "https://github.com/$MIROIR/releases/download/$TAG/Cubox-$VERSION-SHA256.txt")"
+          [ "$code" = "200" ] || { echo "::error::téléchargement anonyme = HTTP $code"; exit 1; }
+          echo "OK : 200"
+
+      - name: Récapitulatif
+        if: always()
+        env:
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          {
+            echo "## Cubox $VERSION"
+            echo ""
+            echo "- forge : $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/v$VERSION"
+            echo "- miroir public : https://github.com/$MIROIR/releases/tag/v$VERSION"
+            echo "- page : https://cubox.yabox.wasabout.net"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  paquet-arch:
+    name: paquet pacman
+    needs: paquets
+    runs-on: cloudox
+    container:
+      # makepkg n'existe que sur Arch : impossible de le faire tourner dans
+      # l'image Ubuntu du job précédent.
+      image: docker.io/library/archlinux:base-devel
+    # Le paquet pacman est un confort, pas la distribution principale : s'il
+    # échoue, Windows et Linux sont déjà publiés. L'échec reste ROUGE dans
+    # l'interface — une publication amputée qui ne se signale pas est pire
+    # qu'un échec.
+    continue-on-error: true
+    steps:
+      - name: Outils
+        run: |
+          set -eu
+          pacman -Sy --noconfirm --needed git jq curl github-cli jdk21-openjdk >/dev/null
+          # makepkg REFUSE de tourner en root, sans option pour passer outre.
+          useradd -m constructeur
+
+      - name: Récupérer le dépôt
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          git init -q .
+          git config --global --add safe.directory "$PWD"
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          entete="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
+          git -c http.extraheader="$entete" fetch --tags origin
+          git checkout -q "$GITHUB_SHA"
+
+      - name: Construire le paquet
+        run: |
+          set -eu
+          chown -R constructeur:constructeur .
+          # Le PKGBUILD clone la branche main du dépôt DISTANT : le tag doit
+          # déjà être poussé, ce qui est le cas puisque c'est lui qui déclenche
+          # ce workflow.
+          su constructeur -c 'cd packaging/aur && makepkg -Cf --noconfirm'
+          ls -lh packaging/aur/cubox-*.pkg.tar.zst
+
+      - name: Ajouter à la release (forge puis miroir)
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_MIRROR_TOKEN }}
+        run: |
+          set -eu
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG='${{ github.event.inputs.tag }}'
+          else
+            TAG="${GITHUB_REF##refs/tags/}"
+          fi
+          API="$GITHUB_SERVER_URL/api/v1/repos/$GITHUB_REPOSITORY"
+          ID="$(curl -sSf -H "Authorization: token $TOKEN" "$API/releases/tags/$TAG" | jq -r '.id')"
+          pkg="$(ls packaging/aur/cubox-*.pkg.tar.zst | head -n1)"
+          nom="$(basename "$pkg")"
+          ancien="$(curl -sS -H "Authorization: token $TOKEN" "$API/releases/$ID/assets" \
+                    | jq -r --arg n "$nom" '.[] | select(.name == $n) | .id')"
+          if [ -n "$ancien" ]; then
+            curl -sS -X DELETE -H "Authorization: token $TOKEN" \
+              "$API/releases/$ID/assets/$ancien" >/dev/null
+          fi
+          curl -sSf -X POST -H "Authorization: token $TOKEN" \
+            -F "attachment=@$pkg" "$API/releases/$ID/assets?name=$nom" >/dev/null
+          echo "publié sur la forge : $nom"
+
+          if [ -n "${GH_TOKEN:-}" ]; then
+            gh release upload "$TAG" "$pkg" --repo "$MIROIR" --clobber
+            echo "miroité : $nom"
+          else
+            echo "::warning::GH_MIRROR_TOKEN absent — paquet pacman non miroité"
+          fi

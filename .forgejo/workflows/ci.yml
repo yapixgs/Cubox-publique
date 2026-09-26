@@ -1,0 +1,278 @@
+---
+name: CI — build et vérifications
+
+# Ce que ce workflow protège
+# --------------------------
+# Jusqu'ici Cubox se construisait uniquement sur le poste de Yann. Une
+# compilation qui ne casse que chez le suivant, ou un `main` qui ne compile
+# plus, ne se découvrait qu'au moment de sortir une version — c'est-à-dire au
+# pire moment. Ce workflow déplace ce constat au moment de la proposition.
+#
+# Il ne publie RIEN : la publication est le rôle de release.yml (les paquets)
+# et d'images.yml (l'image du site).
+#
+# Runner : `cloudox`. C'est le runner Forgejo de l'organisation
+# (Cloudox/infra -> platform/forgejo-runner/). Les labels `cloudox` et `docker`
+# désignent la MÊME machine ; `docker` sert à marquer les jobs qui parlent au
+# daemon dind. Rien ne part chez un tiers.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  # Une nouvelle poussée sur une PR rend le build précédent sans objet :
+  # l'annuler libère le runner, qui est unique sur ce cluster.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  gradle:
+    name: compiler le launcher
+    runs-on: cloudox
+    container:
+      # Le README impose un JDK 21 ; l'image par défaut du runner est
+      # node:22-bookworm, sans Java. On prend donc l'image officielle Temurin.
+      image: docker.io/library/eclipse-temurin:21-jdk-noble
+    steps:
+      - name: Outils de base
+        run: |
+          set -eu
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends git ca-certificates
+
+      # `actions/checkout@v4` ne fonctionne PAS dans un job conteneurisé sur ce
+      # runner. Bissection du 26/09/2026, 13 jobs sonde : sans conteneur il
+      # passe ; avec conteneur il échoue sur debian, eclipse-temurin ET
+      # docker:24-cli (ni l'image ni la libc ne sont donc en cause) ; un clone
+      # manuel dans le même conteneur passe. D'où ces quelques lignes.
+      - name: Récupérer le dépôt
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          git init -q .
+          git config --global --add safe.directory "$PWD"
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          entete="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
+          git -c http.extraheader="$entete" fetch --depth=1 origin "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
+
+      - name: Compiler
+        run: |
+          set -eu
+          chmod +x gradlew
+          # --no-daemon : le conteneur de job meurt à la fin de l'étape, un
+          # daemon Gradle n'y survivrait pas et consommerait de la mémoire
+          # pour rien sur un cluster mono-nœud.
+          #
+          # VERSION_TYPE=unofficial : une compilation de CI n'est pas une
+          # version publiée. La marquer autrement produirait des binaires
+          # indiscernables d'une vraie release.
+          VERSION_TYPE=unofficial ./gradlew --no-daemon --stacktrace \
+            :HMCL:makeExecutables
+
+      - name: Vérifier que les exécutables sont bien là
+        run: |
+          set -eu
+          # `makeExecutables` peut « réussir » sans rien produire si une tâche
+          # amont est marquée UP-TO-DATE à tort. On vérifie la sortie, pas le
+          # code de retour.
+          ls -lh HMCL/build/libs/
+          for motif in 'Cubox-*.jar' 'Cubox-*.exe' 'Cubox-*.sh'; do
+            # shellcheck disable=SC2086
+            test -n "$(find HMCL/build/libs -maxdepth 1 -name "$motif" -print -quit)" \
+              || { echo "::error::aucun fichier $motif produit"; exit 1; }
+          done
+
+      - name: Style de code (checkstyle)
+        # Non bloquant : la configuration checkstyle est héritée de HMCL et n'a
+        # jamais été passée en revue pour Cubox. La rendre bloquante d'un coup
+        # transformerait la CI en mur infranchissable. On la rend d'abord
+        # VISIBLE ; on la durcira dans une PR dédiée, une fois la dette connue.
+        continue-on-error: true
+        run: ./gradlew --no-daemon checkstyleMain || true
+
+  # ──────────────────────────────────────────────────────────────────────────
+  site:
+    name: construire l'image du site
+    # `docker` : ce job a besoin du daemon dind du runner.
+    runs-on: docker
+    container:
+      image: docker:24-cli
+    env:
+      # SANS CETTE LIGNE, RIEN NE MARCHE. Le client docker du conteneur vise
+      # par défaut unix:///var/run/docker.sock, qui n'existe pas ici ; le
+      # daemon vit dans un sidecar du pod du runner, joignable sur la
+      # passerelle du bridge. Même réglage que Helipix/images.yml.
+      DOCKER_HOST: tcp://172.17.0.1:2375
+    steps:
+      - name: Outils de base
+        run: apk add --no-cache git curl
+
+      # `actions/checkout@v4` ne fonctionne PAS dans un job conteneurisé sur ce
+      # runner. Bissection du 26/09/2026, 13 jobs sonde : sans conteneur il
+      # passe ; avec conteneur il échoue sur debian, eclipse-temurin ET
+      # docker:24-cli (ni l'image ni la libc ne sont donc en cause) ; un clone
+      # manuel dans le même conteneur passe. D'où ces quelques lignes.
+      - name: Récupérer le dépôt
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          git init -q .
+          git config --global --add safe.directory "$PWD"
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          entete="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
+          git -c http.extraheader="$entete" fetch --depth=1 origin "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
+
+      - name: Construire
+        run: |
+          set -eu
+          # La sortie est conservée : sans accès aux journaux du runner,
+          # c'est elle que l'étape de diagnostic republiera en cas d'échec.
+          docker build --pull --file site/Dockerfile --tag cubox-site:ci . 2>&1 | tee /tmp/build.log
+
+      - name: Test de fumée
+        run: |
+          set -u
+          # Toute la sortie est capturée dans un fichier : c'est la seule façon
+          # de savoir ce qui s'est passé ici, les journaux du runner n'étant
+          # pas lisibles par l'API de la forge. On ne peut pas utiliser
+          # `pipefail` (ash ne l'a pas partout) : on passe donc par un fichier
+          # témoin, écrit uniquement en cas de succès.
+          rm -f /tmp/smoke.ok
+          fumee() {
+            set -x
+            NOM="smoke-site-$$"
+            docker run --rm -d --name "$NOM" cubox-site:ci || return 1
+
+            ok=0
+            i=0
+            while [ "$i" -lt 15 ]; do
+              if docker exec "$NOM" wget -qO- http://127.0.0.1:8080/healthz >/dev/null 2>&1; then
+                ok=1; break
+              fi
+              i=$((i + 1))
+              sleep 2
+            done
+
+            if [ "$ok" = "1" ]; then
+              docker exec "$NOM" wget -qO- http://127.0.0.1:8080/ | grep -q 'Cubox' \
+                || { echo "ECHEC: la page d accueil ne contient pas 'Cubox'"; ok=0; }
+              # Une variable non substituée laisse nginx démarrer mais casse le
+              # relais : panne silencieuse, exactement ce qu'on veut attraper.
+              if docker exec "$NOM" grep -q 'CUBOX_RELEASES_BASE' /etc/nginx/conf.d/default.conf; then
+                echo "ECHEC: variables CUBOX_* non substituées dans la conf nginx"
+                ok=0
+              fi
+              uid="$(docker exec "$NOM" id -u)"
+              [ "$uid" = "10001" ] || { echo "ECHEC: UID $uid au lieu de 10001"; ok=0; }
+            else
+              echo "ECHEC: l image ne répond pas en 30 s"
+            fi
+
+            docker logs "$NOM" 2>&1 | tail -20 || true
+            docker stop "$NOM" >/dev/null 2>&1 || true
+            [ "$ok" = "1" ] && touch /tmp/smoke.ok
+            return 0
+          }
+          fumee 2>&1 | tee /tmp/smoke.log
+          if [ -f /tmp/smoke.ok ]; then
+            echo "test de fumée OK"
+          else
+            echo "::error::test de fumée en échec — détail dans le commentaire de PR"
+            exit 1
+          fi
+
+      # Sans cette étape, un échec ici est un mur : les journaux du runner ne
+      # sont pas lisibles par l'API de la forge (aucun endpoint de logs dans
+      # cette version, et les routes web répondent 404 à un jeton d'API).
+      # On republie donc l'essentiel là où il est lisible : en commentaire de
+      # la PR. Un diagnostic qu'on ne peut pas lire ne sert à personne.
+      - name: Diagnostic si échec
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          apk add --no-cache jq >/dev/null 2>&1
+          {
+            echo "### Diagnostic automatique — job \`site\`"
+            echo
+            echo '```'
+            echo "== docker version =="
+            docker version 2>&1 | head -20
+            echo
+            echo "== images =="
+            docker images 2>&1 | head -10
+            echo
+            echo "== test de fumée =="
+            tail -n 80 /tmp/smoke.log 2>/dev/null || echo "(aucun /tmp/smoke.log)"
+            echo
+            echo "== dernières lignes du build =="
+            tail -n 30 /tmp/build.log 2>/dev/null || echo "(aucun /tmp/build.log)"
+            echo '```'
+          } > /tmp/diag.md
+          num="${GITHUB_REF#refs/pull/}"; num="${num%/*}"
+          jq -Rs '{body: .}' < /tmp/diag.md > /tmp/diag.json
+          curl -sS -X POST -H "Authorization: token $TOKEN" \
+            -H "Content-Type: application/json" -d @/tmp/diag.json \
+            "$GITHUB_SERVER_URL/api/v1/repos/$GITHUB_REPOSITORY/issues/$num/comments" >/dev/null
+          echo "diagnostic publié en commentaire de la PR #$num"
+
+  # ───────────────────────────────────────────────────────────────────────
+  installeurs:
+    name: compiler les installeurs
+    runs-on: cloudox
+    container:
+      image: docker.io/library/debian:bookworm-slim
+    steps:
+      - name: Outils
+        run: |
+          set -eu
+          apt-get update -qq
+          apt-get install -y -qq --no-install-recommends git ca-certificates nsis shellcheck
+
+      # `actions/checkout@v4` ne fonctionne PAS dans un job conteneurisé sur ce
+      # runner. Bissection du 26/09/2026, 13 jobs sonde : sans conteneur il
+      # passe ; avec conteneur il échoue sur debian, eclipse-temurin ET
+      # docker:24-cli (ni l'image ni la libc ne sont donc en cause) ; un clone
+      # manuel dans le même conteneur passe. D'où ces quelques lignes.
+      - name: Récupérer le dépôt
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          git init -q .
+          git config --global --add safe.directory "$PWD"
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          entete="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
+          git -c http.extraheader="$entete" fetch --depth=1 origin "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
+
+      - name: Compiler l'installeur Windows
+        run: |
+          set -eu
+          # makensis tourne sous Linux : aucune machine Windows n'est
+          # nécessaire pour produire l'installeur.
+          cd packaging/installer
+          makensis -V2 -DVERSION=ci cubox.nsi
+          ls -lh Installer.exe
+
+      - name: Vérifier les scripts shell
+        run: |
+          set -eu
+          # Un installeur est le premier contact de l'utilisateur avec le
+          # projet : une faute de frappe qui n'explose qu'à l'exécution se paie
+          # en désinstallations.
+          bash -n packaging/installer/install.sh
+          bash -n packaging/installer/uninstall.sh
+          bash -n packaging/make-release.sh
+          shellcheck -S warning packaging/installer/install.sh \
+                                packaging/installer/uninstall.sh
