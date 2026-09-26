@@ -45,7 +45,22 @@ jobs:
           apt-get update -qq
           apt-get install -y -qq --no-install-recommends git ca-certificates
 
-      - uses: actions/checkout@v4
+      # `actions/checkout@v4` ne fonctionne PAS dans un job conteneurisé sur ce
+      # runner. Bissection du 26/09/2026, 13 jobs sonde : sans conteneur il
+      # passe ; avec conteneur il échoue sur debian, eclipse-temurin ET
+      # docker:24-cli (ni l'image ni la libc ne sont donc en cause) ; un clone
+      # manuel dans le même conteneur passe. D'où ces quelques lignes.
+      - name: Récupérer le dépôt
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          git init -q .
+          git config --global --add safe.directory "$PWD"
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          entete="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
+          git -c http.extraheader="$entete" fetch --depth=1 origin "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
 
       - name: Compiler
         run: |
@@ -99,7 +114,22 @@ jobs:
       - name: Outils de base
         run: apk add --no-cache git curl
 
-      - uses: actions/checkout@v4
+      # `actions/checkout@v4` ne fonctionne PAS dans un job conteneurisé sur ce
+      # runner. Bissection du 26/09/2026, 13 jobs sonde : sans conteneur il
+      # passe ; avec conteneur il échoue sur debian, eclipse-temurin ET
+      # docker:24-cli (ni l'image ni la libc ne sont donc en cause) ; un clone
+      # manuel dans le même conteneur passe. D'où ces quelques lignes.
+      - name: Récupérer le dépôt
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          git init -q .
+          git config --global --add safe.directory "$PWD"
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          entete="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
+          git -c http.extraheader="$entete" fetch --depth=1 origin "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
 
       - name: Construire
         run: |
@@ -151,7 +181,22 @@ jobs:
           apt-get update -qq
           apt-get install -y -qq --no-install-recommends git ca-certificates nsis shellcheck
 
-      - uses: actions/checkout@v4
+      # `actions/checkout@v4` ne fonctionne PAS dans un job conteneurisé sur ce
+      # runner. Bissection du 26/09/2026, 13 jobs sonde : sans conteneur il
+      # passe ; avec conteneur il échoue sur debian, eclipse-temurin ET
+      # docker:24-cli (ni l'image ni la libc ne sont donc en cause) ; un clone
+      # manuel dans le même conteneur passe. D'où ces quelques lignes.
+      - name: Récupérer le dépôt
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          git init -q .
+          git config --global --add safe.directory "$PWD"
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          entete="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
+          git -c http.extraheader="$entete" fetch --depth=1 origin "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
 
       - name: Compiler l'installeur Windows
         run: |
