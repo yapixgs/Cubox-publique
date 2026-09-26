@@ -21,8 +21,13 @@
 
 ## Build (compilation locale)
 
-> Il n'y a **pas de binaire pré-compilé** pour l'instant : chacun compile Cubox
-> chez soi. (Les versions finales seront publiées en *Releases* sur la forge.)
+> Tu n'as **pas besoin de compiler** : rends-toi sur
+> **<https://cubox.yabox.wasabout.net>**, télécharge l'archive de ton système,
+> extrais-la et lance l'installeur (`Installer.exe` sous Windows,
+> `./install.sh` sous Linux). Java est déjà inclus, il n'y a rien d'autre à
+> installer. Sous Arch : `sudo pacman -U cubox-*.pkg.tar.zst`.
+>
+> Les instructions ci-dessous s'adressent à qui veut compiler lui-même.
 
 **Prérequis** : un **JDK 21** et ~1,5 Go d'espace disque libre.
 
