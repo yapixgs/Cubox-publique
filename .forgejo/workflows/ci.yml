@@ -134,7 +134,9 @@ jobs:
       - name: Construire
         run: |
           set -eu
-          docker build --pull --file site/Dockerfile --tag cubox-site:ci .
+          # La sortie est conservée : sans accès aux journaux du runner,
+          # c'est elle que l'étape de diagnostic republiera en cas d'échec.
+          docker build --pull --file site/Dockerfile --tag cubox-site:ci . 2>&1 | tee /tmp/build.log
 
       - name: Test de fumée
         run: |
@@ -168,7 +170,40 @@ jobs:
           docker stop "$NOM" >/dev/null 2>&1 || true
           [ "$ok" = "1" ]
 
-  # ──────────────────────────────────────────────────────────────────────────
+      # Sans cette étape, un échec ici est un mur : les journaux du runner ne
+      # sont pas lisibles par l'API de la forge (aucun endpoint de logs dans
+      # cette version, et les routes web répondent 404 à un jeton d'API).
+      # On republie donc l'essentiel là où il est lisible : en commentaire de
+      # la PR. Un diagnostic qu'on ne peut pas lire ne sert à personne.
+      - name: Diagnostic si échec
+        if: failure() && github.event_name == 'pull_request'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          apk add --no-cache jq >/dev/null 2>&1
+          {
+            echo "### Diagnostic automatique — job \`site\`"
+            echo
+            echo '```'
+            echo "== docker version =="
+            docker version 2>&1 | head -20
+            echo
+            echo "== images =="
+            docker images 2>&1 | head -10
+            echo
+            echo "== dernières lignes du build =="
+            tail -n 60 /tmp/build.log 2>/dev/null || echo "(aucun /tmp/build.log)"
+            echo '```'
+          } > /tmp/diag.md
+          num="${GITHUB_REF#refs/pull/}"; num="${num%/*}"
+          jq -Rs '{body: .}' < /tmp/diag.md > /tmp/diag.json
+          curl -sS -X POST -H "Authorization: token $TOKEN" \
+            -H "Content-Type: application/json" -d @/tmp/diag.json \
+            "$GITHUB_SERVER_URL/api/v1/repos/$GITHUB_REPOSITORY/issues/$num/comments" >/dev/null
+          echo "diagnostic publié en commentaire de la PR #$num"
+
+  # ───────────────────────────────────────────────────────────────────────
   installeurs:
     name: compiler les installeurs
     runs-on: cloudox
