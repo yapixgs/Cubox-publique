@@ -174,5 +174,11 @@ echo
 echo "👉 Téléverse ces fichiers dans une *Release* sur la forge."
 echo "   Windows     : décompresser le .zip → lancer Installer.exe"
 echo "   Linux       : décompresser le .tar.gz → ./install.sh"
-[ -n "$pkg_built" ] && \
-echo "   Arch/pacman : sudo pacman -U $pkg_built"
+# ⚠️ `[ ... ] && echo ...` EN DERNIÈRE LIGNE renvoie 1 quand le test est faux.
+# C'est le statut de sortie du script tout entier — donc un échec, alors que
+# tout s'est bien passé. Invisible sur Arch (où `pkg_built` est toujours
+# renseigné), fatal partout ailleurs : c'est ce qui faisait échouer la CI
+# après une construction parfaitement réussie.
+if [ -n "$pkg_built" ]; then
+  echo "   Arch/pacman : sudo pacman -U $pkg_built"
+fi
