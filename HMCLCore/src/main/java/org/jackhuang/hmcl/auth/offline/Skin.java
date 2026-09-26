@@ -59,6 +59,7 @@ public class Skin {
         ZURI,
         LOCAL_FILE,
         LITTLE_SKIN,
+        ELY_BY,
         CUSTOM_SKIN_LOADER_API,
         YGGDRASIL_API;
 
@@ -88,6 +89,8 @@ public class Skin {
                     return LOCAL_FILE;
                 case "little_skin":
                     return LITTLE_SKIN;
+                case "ely_by":
+                    return ELY_BY;
                 case "custom_skin_loader_api":
                     return CUSTOM_SKIN_LOADER_API;
                 case "yggdrasil_api":
@@ -200,6 +203,40 @@ public class Skin {
 
                             return new LoadedSkin((TextureModel) result.get(0), skin, cape);
                         });
+            case ELY_BY:
+                // Ely.by exposes an unauthenticated, by-username texture endpoint:
+                //   GET http://skinsystem.ely.by/textures/<username>
+                //   -> {"SKIN":{"url":...,"metadata":{"model":"slim"}?},"CAPE":{"url":...}?}
+                //   (HTTP 204 with an empty body when the username has no skin)
+                return Task.composeAsync(() -> new GetTask("http://skinsystem.ely.by/textures/" + username))
+                        .thenComposeAsync(json -> {
+                            if (StringUtils.isBlank(json)) {
+                                return Task.supplyAsync(() -> null);
+                            }
+
+                            ElyByTextures textures = JsonUtils.GSON.fromJson(json, ElyByTextures.class);
+                            if (textures == null || textures.skin == null || textures.skin.url == null) {
+                                return Task.supplyAsync(() -> null);
+                            }
+
+                            TextureModel elyModel = textures.skin.metadata != null && "slim".equals(textures.skin.metadata.model)
+                                    ? TextureModel.SLIM : TextureModel.WIDE;
+                            String elyCapeUrl = textures.cape != null ? textures.cape.url : null;
+
+                            return Task.allOf(
+                                    Task.supplyAsync(() -> elyModel),
+                                    new FetchBytesTask(textures.skin.url),
+                                    elyCapeUrl == null ? Task.supplyAsync(() -> null) : new FetchBytesTask(elyCapeUrl)
+                            );
+                        }).thenApplyAsync(result -> {
+                            if (result == null) {
+                                return null;
+                            }
+
+                            Texture skin = result.get(1) != null ? Texture.loadTexture((InputStream) result.get(1)) : null;
+                            Texture cape = result.get(2) != null ? Texture.loadTexture((InputStream) result.get(2)) : null;
+                            return new LoadedSkin((TextureModel) result.get(0), skin, cape);
+                        });
             default:
                 throw new UnsupportedOperationException();
         }
@@ -295,6 +332,31 @@ public class Skin {
         public Texture getCape() {
             return cape;
         }
+    }
+
+    /// Ely.by texture response returned by `http://skinsystem.ely.by/textures/<username>`.
+    /// Shape: `{"SKIN":{"url":...,"metadata":{"model":"slim"}?},"CAPE":{"url":...}?}`.
+    private static final class ElyByTextures {
+        /// The skin texture, or `null` when the username has no skin.
+        @SerializedName("SKIN")
+        private @Nullable ElyByTexture skin;
+        /// The cape texture, or `null` when the username has no cape.
+        @SerializedName("CAPE")
+        private @Nullable ElyByTexture cape;
+    }
+
+    /// A single Ely.by texture entry (skin or cape).
+    private static final class ElyByTexture {
+        /// The absolute URL of the PNG texture.
+        private @Nullable String url;
+        /// Optional metadata; carries the arm model ("slim") for skins.
+        private @Nullable ElyByMetadata metadata;
+    }
+
+    /// Optional Ely.by texture metadata; `model` is "slim" for the Alex model.
+    private static final class ElyByMetadata {
+        /// The arm model, "slim" for Alex; absent/other means the classic model.
+        private @Nullable String model;
     }
 
     private static class SkinJson {

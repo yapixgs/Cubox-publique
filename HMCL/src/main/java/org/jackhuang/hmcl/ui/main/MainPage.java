@@ -171,6 +171,10 @@ public final class MainPage extends StackPane implements DecoratorPage {
 
         // Cubox: featured mods, one per category, shown under the announcement.
         topBox.getChildren().add(buildFeaturedSection());
+        // Cubox: curated beginner modpacks, shown under the featured mods.
+        topBox.getChildren().add(buildFeaturedModpacksSection());
+        // Cubox: recommended non-premium servers, shown under the modpacks.
+        topBox.getChildren().add(buildFeaturedServersSection());
         getChildren().add(topBox);
 
         updatePane = new StackPane();
@@ -303,6 +307,76 @@ public final class MainPage extends StackPane implements DecoratorPage {
         wrapper.setPadding(new Insets(15));
         wrapper.setPickOnBounds(false);
         return wrapper;
+    }
+
+    /// Builds the "recommended modpacks" card: a curated, beginner-friendly
+    /// selection (Modrinth + CurseForge), shown on the home page. Each row opens
+    /// the modpack's page in the browser, from where it can be installed.
+    private VBox buildFeaturedModpacksSection() {
+        VBox card = new VBox(12);
+        card.getStyleClass().add("card");
+        card.setMaxWidth(560);
+        Label title = new Label(i18n("cubox.featured.modpacks.title"));
+        title.getStyleClass().add("title");
+        card.getChildren().addAll(
+                title,
+                featuredRow("Fabulously Optimized", i18n("cubox.featured.modpacks.fabulously"), "https://modrinth.com/modpack/fabulously-optimized"),
+                featuredRow("Cobblemon", i18n("cubox.featured.modpacks.cobblemon"), "https://modrinth.com/modpack/cobblemon-fabric"),
+                featuredRow("Prominence II RPG", i18n("cubox.featured.modpacks.prominence"), "https://modrinth.com/modpack/prominence-2-fabric"),
+                featuredRow("All the Mods 9", i18n("cubox.featured.modpacks.atm9"), "https://www.curseforge.com/minecraft/modpacks/all-the-mods-9"),
+                featuredRow("Better MC", i18n("cubox.featured.modpacks.bettermc"), "https://www.curseforge.com/minecraft/modpacks/better-mc-forge-bmc1"));
+
+        VBox wrapper = new VBox(card);
+        wrapper.setPadding(new Insets(15));
+        wrapper.setPickOnBounds(false);
+        return wrapper;
+    }
+
+    /// Builds the "recommended servers" card: well-known non-premium (offline
+    /// mode) servers. Cubox is offline-only, so these accept its accounts. Each
+    /// row shows the address and a button to copy it to the clipboard, ready to
+    /// paste into Minecraft's "Add server" screen.
+    private VBox buildFeaturedServersSection() {
+        VBox card = new VBox(12);
+        card.getStyleClass().add("card");
+        card.setMaxWidth(560);
+        Label title = new Label(i18n("cubox.featured.servers.title"));
+        title.getStyleClass().add("title");
+        Label hint = new Label(i18n("cubox.featured.servers.hint"));
+        hint.setWrapText(true);
+        card.getChildren().addAll(
+                title,
+                hint,
+                serverRow("PikaNetwork", "play.pika-network.net"),
+                serverRow("JartexNetwork", "play.jartexnetwork.com"),
+                serverRow("ExtremeCraft", "play.extremecraft.net"),
+                serverRow("Twerion", "twerion.net"));
+
+        VBox wrapper = new VBox(card);
+        wrapper.setPadding(new Insets(15));
+        wrapper.setPickOnBounds(false);
+        return wrapper;
+    }
+
+    /// One recommended-server row: name + address on the left, a "copy address"
+    /// button on the right that copies the address to the clipboard.
+    private BorderPane serverRow(String name, String address) {
+        Label nameLabel = new Label(name);
+        nameLabel.setStyle("-fx-font-weight: bold;");
+        Label addressLabel = new Label(address);
+        addressLabel.setWrapText(true);
+        VBox text = new VBox(2, nameLabel, addressLabel);
+
+        JFXButton copyButton = FXUtils.newRaisedButton(i18n("cubox.featured.servers.copy"));
+        copyButton.setOnAction(e -> FXUtils.copyText(address));
+
+        BorderPane row = new BorderPane();
+        row.setCenter(text);
+        BorderPane.setAlignment(text, Pos.CENTER_LEFT);
+        row.setRight(copyButton);
+        BorderPane.setAlignment(copyButton, Pos.CENTER);
+        BorderPane.setMargin(copyButton, new Insets(0, 0, 0, 12));
+        return row;
     }
 
     /// One featured-mod row: name + short description on the left, an "open" button on the right.
