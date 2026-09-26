@@ -22,6 +22,19 @@ Les versions publiées sont téléchargeables sur
   suffixe `unofficial-<commit>` : `HMCL/build.gradle.kts` dérive le numéro de
   `GITHUB_SHA`, que Forgejo exporte. Les archives portaient le bon nom mais le
   launcher affichait le mauvais numéro.
+- `make-release.sh` renvoyait **1 après une construction réussie**. Sa dernière
+  ligne était `[ -n "$pkg_built" ] && echo …` : hors d'Arch, `pkg_built` est
+  vide, la liste `&&` renvoie 1, et c'est le statut de sortie du script.
+  Invisible tant qu'il n'avait tourné que sur Arch.
+- Le **paquet pacman** n'était pas construit hors d'Arch : le `PKGBUILD`
+  clonait le dépôt *distant*, or la forge exige une connexion — le clone
+  échouait sans identifiants. Il construit désormais le dépôt **local**
+  (`git+file://`), ce qui règle aussi un problème plus sournois : cloner
+  `branch=main` empaquetait l'état de `main` au moment du build, pas le commit
+  que l'on publie.
+- `update.sh` désactivait explicitement le *credential helper* pour « tirer en
+  anonyme ». La forge n'acceptant pas l'anonyme, cela garantissait l'échec au
+  lieu de l'éviter.
 
 ## 1.2
 

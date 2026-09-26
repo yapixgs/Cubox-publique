@@ -63,6 +63,11 @@ jobs:
       # passe ; avec conteneur il échoue sur debian, eclipse-temurin ET
       # docker:24-cli (ni l'image ni la libc ne sont donc en cause) ; un clone
       # manuel dans le même conteneur passe. D'où ces quelques lignes.
+      # NE PAS GÉNÉRALISER : Cloudox/Helipix utilise la même combinaison
+      # (container: docker:24-cli + actions/checkout@v4) et ses exécutions
+      # RÉUSSISSENT (vérifié : images.yml, succès le 22/09/2026). La cause est
+      # propre à ce dépôt et n'est pas établie. Ce qui l'est : le clone manuel
+      # fonctionne ici, de façon reproductible.
       - name: Récupérer le dépôt
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}

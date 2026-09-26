@@ -126,13 +126,21 @@ lire ne sert à personne.
 
 ### Pièges connus du runner
 
-- **`actions/checkout` ne fonctionne pas dans un job avec `container:`.**
-  Établi par bissection (13 jobs sonde, 26/09/2026) : sans conteneur il passe ;
-  avec conteneur il échoue sur `debian`, `eclipse-temurin` **et**
-  `docker:24-cli` — ni l'image ni la libc ne sont en cause ; un `git clone`
-  manuel dans le même conteneur passe. Tous les workflows clonent donc à la
-  main. Par prudence, `upload-artifact` / `download-artifact` sont évitées
-  aussi (mêmes actions JS, risque non mesuré).
+- **`actions/checkout` ne fonctionne pas dans un job avec `container:` — sur ce
+  dépôt.** Établi par bissection (13 jobs sonde, 26/09/2026) : sans conteneur
+  il passe ; avec conteneur il échoue sur `debian`, `eclipse-temurin` **et**
+  `docker:24-cli` ; un `git clone` manuel dans le même conteneur passe. Tous
+  les workflows clonent donc à la main.
+
+  ⚠️ **Ne pas généraliser.** `Cloudox/Helipix` utilise exactement la même
+  combinaison (`container: docker:24-cli` + `actions/checkout@v4`) et ses
+  exécutions **réussissent** (vérifié : `images.yml`, succès le 22/09/2026).
+  La cause est donc propre à ce dépôt — sa taille et son historique sont sans
+  commune mesure — et **je ne l'ai pas établie**. Ce qui est établi, c'est que
+  le clone manuel fonctionne ici de façon reproductible.
+
+  Par prudence, `upload-artifact` / `download-artifact` sont évitées aussi
+  (mêmes actions JS, risque non mesuré).
 
 - **`env -u GITHUB_SHA` avant `make-release.sh`.** `HMCL/build.gradle.kts`
   dérive la version de `GITHUB_SHA`, que Forgejo exporte :

@@ -10,23 +10,45 @@ pkgrel=1
 epoch=1
 pkgdesc="Cubox — launcher Minecraft hors-ligne, fork rebrandé de HMCL"
 arch=('any')
-url="https://forge.oxitablock.com/Yapix839/Cubox"
+url="https://forge.oxitablock.com/Cloudox/Cubox"
 license=('GPL-3.0-or-later')
 depends=('java-runtime>=11')
 makedepends=('jdk21-openjdk' 'git')
-source=("git+https://forge.oxitablock.com/Yapix839/Cubox.git#branch=main")
+# ⚠️ ON CONSTRUIT LE DÉPÔT LOCAL, PAS LE DÉPÔT DISTANT.
+#
+# L'ancienne source était `git+https://forge.oxitablock.com/…#branch=main`.
+# Deux problèmes, dont un bloquant :
+#
+#   1. la forge EXIGE UNE CONNEXION, même pour un dépôt public. Mesuré :
+#      un clone anonyme renvoie 404. En intégration continue, makepkg tourne
+#      sous un utilisateur sans identifiants : le clone échouait, et avec lui
+#      le paquet Arch de chaque publication ;
+#   2. cloner `branch=main` construit l'état de main AU MOMENT DU BUILD, pas
+#      le commit que l'on est en train de publier. Un tag v1.3 posé puis
+#      suivi d'un commit sur main aurait produit un paquet « 1.3 » contenant
+#      autre chose que la 1.3.
+#
+# `git+file://` sur la racine du dépôt règle les deux : aucune authentification,
+# et c'est exactement le code présent ici qui est empaqueté.
+_racine="$(cd "$startdir/../.." && pwd)"
+source=("$pkgname::git+file://$_racine")
 sha256sums=('SKIP')
 
 # Génère une version unique par commit (ex. 1.0.r123.g9d723c5) afin que
 # chaque nouveau commit sur main déclenche un vrai rebuild — sinon makepkg
 # réinstalle l'ancien paquet déjà compilé au lieu de recompiler le code à jour.
 pkgver() {
-  cd "$srcdir/Cubox"
-  printf "1.3.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+  cd "$srcdir/$pkgname"
+  # La version est LUE, pas recopiée : un numéro en dur ici finit toujours par
+  # diverger de config/project.properties, et c'est celui-ci qui fait foi
+  # (release.yml refuse de publier si le tag ne lui correspond pas).
+  local racine
+  racine="$(sed -n 's/^versionRoot=//p' config/project.properties | tr -d ' \r')"
+  printf "%s.r%s.g%s" "${racine:-0}" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 build() {
-  cd "$srcdir/Cubox"
+  cd "$srcdir/$pkgname"
   chmod +x ./gradlew
   # Force JDK 21 (version testée) plutôt que le JDK système éventuellement trop récent
   export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
@@ -42,7 +64,7 @@ build() {
   fi
   export CURSEFORGE_API_KEY="${CURSEFORGE_API_KEY:-}"
 
-  # Build local : Gradle télécharge ses dépendances depuis Internet (machine Arch = OK)
+  # Gradle télécharge ses dépendances depuis Internet.
   JAVA_TOOL_OPTIONS="-XX:-UsePerfData" VERSION_TYPE="unofficial" \
     "$JAVA_HOME/bin/java" -version
   # `clean` d'abord : garantit que le jar embarque bien la version courante
@@ -52,7 +74,7 @@ build() {
 }
 
 package() {
-  cd "$srcdir/Cubox"
+  cd "$srcdir/$pkgname"
   local jar
   jar=$(ls HMCL/build/libs/Cubox-*.jar | head -n1)
 
