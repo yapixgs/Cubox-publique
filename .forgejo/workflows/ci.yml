@@ -140,35 +140,55 @@ jobs:
 
       - name: Test de fumée
         run: |
-          set -eu
-          # Pousser une image qui ne démarre même pas, c'est publier une panne.
-          # On vérifie les deux choses qui peuvent réellement casser :
-          # le rendu statique, et la substitution du template nginx.
-          NOM=smoke-site-$$
-          docker run --rm -d --name "$NOM" cubox-site:ci
-          ok=0
-          for _ in $(seq 1 15); do
-            if docker exec "$NOM" wget -qO- http://127.0.0.1:8080/healthz >/dev/null 2>&1; then
-              ok=1; break
+          set -u
+          # Toute la sortie est capturée dans un fichier : c'est la seule façon
+          # de savoir ce qui s'est passé ici, les journaux du runner n'étant
+          # pas lisibles par l'API de la forge. On ne peut pas utiliser
+          # `pipefail` (ash ne l'a pas partout) : on passe donc par un fichier
+          # témoin, écrit uniquement en cas de succès.
+          rm -f /tmp/smoke.ok
+          fumee() {
+            set -x
+            NOM="smoke-site-$$"
+            docker run --rm -d --name "$NOM" cubox-site:ci || return 1
+
+            ok=0
+            i=0
+            while [ "$i" -lt 15 ]; do
+              if docker exec "$NOM" wget -qO- http://127.0.0.1:8080/healthz >/dev/null 2>&1; then
+                ok=1; break
+              fi
+              i=$((i + 1))
+              sleep 2
+            done
+
+            if [ "$ok" = "1" ]; then
+              docker exec "$NOM" wget -qO- http://127.0.0.1:8080/ | grep -q 'Cubox' \
+                || { echo "ECHEC: la page d accueil ne contient pas 'Cubox'"; ok=0; }
+              # Une variable non substituée laisse nginx démarrer mais casse le
+              # relais : panne silencieuse, exactement ce qu'on veut attraper.
+              if docker exec "$NOM" grep -q 'CUBOX_RELEASES_BASE' /etc/nginx/conf.d/default.conf; then
+                echo "ECHEC: variables CUBOX_* non substituées dans la conf nginx"
+                ok=0
+              fi
+              uid="$(docker exec "$NOM" id -u)"
+              [ "$uid" = "10001" ] || { echo "ECHEC: UID $uid au lieu de 10001"; ok=0; }
+            else
+              echo "ECHEC: l image ne répond pas en 30 s"
             fi
-            sleep 2
-          done
-          if [ "$ok" = "1" ]; then
-            docker exec "$NOM" wget -qO- http://127.0.0.1:8080/ | grep -q 'Cubox' \
-              || { echo "::error::la page d accueil ne contient pas 'Cubox'"; ok=0; }
-            # Le template doit avoir été substitué : s'il reste un ${CUBOX_…}
-            # dans la conf finale, nginx démarre quand même mais le relais est
-            # cassé — panne silencieuse, exactement ce qu'on veut attraper ici.
-            if docker exec "$NOM" grep -q '\${CUBOX_' /etc/nginx/conf.d/default.conf; then
-              echo "::error::variables \${CUBOX_*} non substituées dans la conf nginx"
-              ok=0
-            fi
+
+            docker logs "$NOM" 2>&1 | tail -20 || true
+            docker stop "$NOM" >/dev/null 2>&1 || true
+            [ "$ok" = "1" ] && touch /tmp/smoke.ok
+            return 0
+          }
+          fumee 2>&1 | tee /tmp/smoke.log
+          if [ -f /tmp/smoke.ok ]; then
+            echo "test de fumée OK"
           else
-            echo "::error::l image ne répond pas en 30 s"
+            echo "::error::test de fumée en échec — détail dans le commentaire de PR"
+            exit 1
           fi
-          docker logs "$NOM" || true
-          docker stop "$NOM" >/dev/null 2>&1 || true
-          [ "$ok" = "1" ]
 
       # Sans cette étape, un échec ici est un mur : les journaux du runner ne
       # sont pas lisibles par l'API de la forge (aucun endpoint de logs dans
@@ -192,8 +212,11 @@ jobs:
             echo "== images =="
             docker images 2>&1 | head -10
             echo
+            echo "== test de fumée =="
+            tail -n 80 /tmp/smoke.log 2>/dev/null || echo "(aucun /tmp/smoke.log)"
+            echo
             echo "== dernières lignes du build =="
-            tail -n 60 /tmp/build.log 2>/dev/null || echo "(aucun /tmp/build.log)"
+            tail -n 30 /tmp/build.log 2>/dev/null || echo "(aucun /tmp/build.log)"
             echo '```'
           } > /tmp/diag.md
           num="${GITHUB_REF#refs/pull/}"; num="${num%/*}"
