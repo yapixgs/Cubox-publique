@@ -142,8 +142,12 @@ jobs:
           #
           # On le RETIRE plutôt que de le vider : "".substring(0, 7) lève une
           # StringIndexOutOfBoundsException côté Gradle.
+          # La sortie est conservée : sans accès aux journaux du runner, c'est
+          # elle que l'étape de diagnostic republiera en cas d'échec.
+          set -o pipefail
           env -u GITHUB_SHA -u BUILD_NUMBER \
-            ./packaging/make-release.sh '${{ steps.version.outputs.VERSION }}'
+            ./packaging/make-release.sh '${{ steps.version.outputs.VERSION }}' 2>&1 \
+            | tee /tmp/build.log
 
       - name: Vérifier le contenu des archives
         run: |
@@ -265,6 +269,45 @@ jobs:
             echo "- miroir public : https://github.com/$MIROIR/releases/tag/v$VERSION"
             echo "- page : https://cubox.yabox.wasabout.net"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # Les journaux du runner ne sont pas lisibles : cette version de la forge
+      # n'expose aucun endpoint de logs dans son API, et ses routes web
+      # répondent 404 à un jeton d'API. Un échec de publication serait donc un
+      # mur. On ouvre un ticket contenant l'essentiel — c'est le seul endroit
+      # lisible, et ça laisse une trace datée plutôt qu'un job rouge oublié.
+      - name: Diagnostic si échec
+        if: failure()
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          set +e
+          {
+            echo "La publication de \`v${VERSION:-?}\` a échoué."
+            echo
+            echo "## Environnement"
+            echo '```'
+            echo "outils : $(makensis -VERSION 2>/dev/null || echo 'makensis ABSENT') | \
+          $(java -version 2>&1 | head -1) | $(curl --version | head -1)"
+            echo "espace disque :"; df -h . | tail -2
+            echo '```'
+            echo
+            echo "## dist/"
+            echo '```'
+            ls -lh dist/ 2>/dev/null || echo "(dist/ absent)"
+            echo '```'
+            echo
+            echo "## 120 dernières lignes du build"
+            echo '```'
+            tail -n 120 /tmp/build.log 2>/dev/null || echo "(aucun /tmp/build.log)"
+            echo '```'
+          } > /tmp/diag.md
+          jq -Rs --arg t "Échec de publication — v${VERSION:-?}" \
+            '{title: $t, body: .}' < /tmp/diag.md > /tmp/diag.json
+          curl -sS -X POST -H "Authorization: token $TOKEN" \
+            -H "Content-Type: application/json" -d @/tmp/diag.json \
+            "$GITHUB_SERVER_URL/api/v1/repos/$GITHUB_REPOSITORY/issues" \
+            | jq -r '"ticket ouvert : " + (.html_url // "échec de l ouverture")'
 
   # ──────────────────────────────────────────────────────────────────────────
   paquet-arch:
