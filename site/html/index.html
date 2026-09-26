@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="fr" data-theme="cubox">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0a0f1c">
+    <meta name="description" content="Cubox — launcher Minecraft hors-ligne, mods et modpacks natifs, sans compte Microsoft. Téléchargement Windows, Linux et Arch.">
+    <title>Cubox · Cloudox</title>
+    <link rel="icon" type="image/png" href="/cubox.png">
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container row topbar-inner">
+        <a class="brand row" href="/">
+          <img src="/cubox.png" alt="" width="40" height="40">
+          <span>Cubox <small>by Cloudox</small></span>
+        </a>
+        <nav class="row nav">
+          <a href="#telecharger">Télécharger</a>
+          <a href="#fonctions">Fonctions</a>
+          <a href="#demarrer">Démarrer</a>
+          <a class="btn btn-ghost" href="https://forge.oxitablock.com/Cloudox/Cubox" rel="noopener">Code source</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <!-- ── Héros ────────────────────────────────────────────────────── -->
+      <section class="section hero">
+        <div class="container">
+          <span class="badge" id="badge-version">Chargement…</span>
+          <h1>Minecraft, <span class="grad-text">sans compte Microsoft</span>.</h1>
+          <p class="lead">
+            Cubox est un launcher Minecraft Java Edition qui tourne
+            <strong>hors-ligne</strong> : un pseudo suffit, rien n'est envoyé à
+            Microsoft. Forge, Fabric, Quilt, NeoForge et OptiFine sont gérés
+            nativement, et un JRE Java&nbsp;21 est déjà dans le paquet — il n'y
+            a rien à installer à côté.
+          </p>
+          <div class="row hero-actions">
+            <a class="btn btn-primary" href="#telecharger">Télécharger Cubox</a>
+            <a class="btn btn-outline" href="https://forge.oxitablock.com/Cloudox/Cubox/releases" rel="noopener">Toutes les versions</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Téléchargements ──────────────────────────────────────────── -->
+      <section class="section" id="telecharger">
+        <div class="container">
+          <h2>Télécharger</h2>
+          <p class="muted">
+            Décompresse, lance, c'est tout. Le Java nécessaire est inclus dans
+            chaque archive.
+          </p>
+
+          <!-- Rempli par app.js depuis /api/releases. Le contenu statique
+               ci-dessous est l'état « en cours de chargement » ; si la forge
+               est injoignable, app.js le remplace par un message clair et un
+               lien direct — jamais par une page vide. -->
+          <div class="grid grid-3" id="downloads">
+            <div class="card skeleton"><p class="muted">Chargement des versions…</p></div>
+          </div>
+
+          <p class="muted small" id="checksums"></p>
+        </div>
+      </section>
+
+      <!-- ── Fonctions ────────────────────────────────────────────────── -->
+      <section class="section" id="fonctions">
+        <div class="container">
+          <h2>Ce que fait Cubox</h2>
+          <div class="grid grid-2">
+            <article class="card">
+              <h3>🧩 Mods et modpacks natifs</h3>
+              <p>
+                Forge, Fabric, Quilt, NeoForge et OptiFine s'installent depuis
+                le launcher. Import direct des modpacks Modrinth, CurseForge et
+                MultiMC, et navigateur Modrinth intégré.
+              </p>
+            </article>
+            <article class="card">
+              <h3>🔒 Aucun compte, aucune télémétrie</h3>
+              <p>
+                Mode hors-ligne par défaut : un pseudo, rien d'autre. L'auto-update
+                vers les serveurs d'origine est désactivée — Cubox ne téléphone
+                à personne.
+              </p>
+            </article>
+            <article class="card">
+              <h3>🎨 Skins persos</h3>
+              <p>
+                Skins via <span class="mono">authlib-injector</span> (Ely.by par
+                exemple), toujours sans compte Microsoft. Entièrement optionnel.
+              </p>
+            </article>
+            <article class="card">
+              <h3>💻 Windows, Linux, Arch</h3>
+              <p>
+                Le même build produit le <span class="mono">.exe</span>, le
+                <span class="mono">.sh</span> et un paquet
+                <span class="mono">pacman</span>. Interface en français.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Bien démarrer ────────────────────────────────────────────── -->
+      <section class="section" id="demarrer">
+        <div class="container">
+          <h2>Bien démarrer</h2>
+          <div class="grid grid-3">
+            <article class="card step">
+              <span class="step-n">1</span>
+              <h3>Installer</h3>
+              <p>
+                Windows : décompresse le <span class="mono">.zip</span> et
+                double-clique <span class="mono">Cubox.exe</span>.<br>
+                Linux : décompresse le <span class="mono">.tar.gz</span> et lance
+                <span class="mono">./Cubox.sh</span>.<br>
+                Arch : <span class="mono">sudo pacman -U cubox-*.pkg.tar.zst</span>
+              </p>
+            </article>
+            <article class="card step">
+              <span class="step-n">2</span>
+              <h3>Choisir un pseudo</h3>
+              <p>
+                Au premier lancement, crée un compte hors-ligne : un pseudo
+                suffit. Un mini-guide « Premiers pas » t'accompagne.
+              </p>
+            </article>
+            <article class="card step">
+              <span class="step-n">3</span>
+              <h3>Jouer</h3>
+              <p>
+                Solo, LAN, serveurs non-premium et modpacks fonctionnent
+                immédiatement. Le guide débutant détaille chaque cas.
+              </p>
+            </article>
+          </div>
+
+          <div class="note note-warn">
+            <strong>⚠️ Serveurs premium</strong>
+            <p>
+              Les serveurs qui exigent une vérification du compte Microsoft
+              (Hypixel et consorts) <strong>refuseront la connexion</strong>.
+              C'est une protection côté serveur qu'aucun launcher hors-ligne ne
+              peut contourner — ce n'est pas un défaut de Cubox. Les serveurs
+              <span class="mono">online-mode=false</span>, le solo, le LAN et
+              tes propres serveurs marchent parfaitement.
+            </p>
+          </div>
+
+          <p>
+            <a class="btn btn-outline" href="https://forge.oxitablock.com/Cloudox/Cubox/src/branch/main/docs/GUIDE_MINECRAFT_DEBUTANT.md" rel="noopener">
+              Guide Minecraft pour débutants
+            </a>
+            <a class="btn btn-ghost" href="https://forge.oxitablock.com/Cloudox/Cubox/src/branch/main/docs/ROADMAP.md" rel="noopener">
+              Feuille de route
+            </a>
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <p>
+          <strong>Cubox</strong> — fork non-officiel de
+          <a href="https://github.com/HMCL-dev/HMCL" rel="noopener">HMCL</a>,
+          sous licence <a href="https://forge.oxitablock.com/Cloudox/Cubox/src/branch/main/LICENSE" rel="noopener">GPLv3</a>.
+          Sans affiliation avec Mojang, Microsoft ou l'équipe HMCL.
+        </p>
+        <p class="muted small">
+          Hébergé par <a href="https://forge.oxitablock.com/Cloudox/infra" rel="noopener">Cloudox</a>
+          · <a href="https://forge.oxitablock.com/Cloudox/Cubox" rel="noopener">Code source</a>
+          · <a href="https://forge.oxitablock.com/Cloudox/Cubox/src/branch/main/docs/EULA.md" rel="noopener">Conditions d'utilisation</a>
+        </p>
+      </div>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

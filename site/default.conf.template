@@ -1,0 +1,116 @@
+# Cubox — page publique de téléchargement.
+#
+# POURQUOI LES TÉLÉCHARGEMENTS VIENNENT DE GITHUB ET PAS DE LA FORGE
+# ------------------------------------------------------------------
+# La forge exige une connexion, y compris pour un dépôt marqué public.
+# Mesuré depuis un conteneur sans identifiants :
+#
+#   /api/v1/version                                          200 OK
+#   /api/v1/repos/Yapix839/Cubox                             404
+#   /api/v1/repos/Yapix839/Cubox/releases                    404
+#   /Yapix839/Cubox                                          404
+#   /Yapix839/Cubox/releases/download/v1.2/…SHA256.txt       404
+#
+# Une page publique qui pointerait sur la forge ne servirait donc que des
+# liens morts. Le dépôt prévoyait déjà la parade : `packaging/publish-github.sh`
+# miroite chaque release vers github.com/yapixgs/Cubox-publique, qui lui est
+# réellement anonyme (302 -> 200 vérifié) et renvoie `access-control-allow-origin: *`.
+#
+# La forge reste la source de vérité ; GitHub est le canal de distribution.
+#
+# POURQUOI UN RELAIS ALORS QUE GITHUB ENVOIE DU CORS
+# ---------------------------------------------------
+# L'API GitHub anonyme est limitée à 60 requêtes/heure PAR IP. Si chaque
+# visiteur appelait l'API depuis son navigateur ça passerait, mais on perdrait
+# le cache ; en relayant, l'IP du cluster émet au plus 12 requêtes/heure grâce
+# au `proxy_cache` de 5 minutes, et la page continue de s'afficher même si
+# GitHub est momentanément indisponible (`proxy_cache_use_stale`).
+#
+# Ce fichier est un TEMPLATE : l'entrypoint de l'image nginx officielle
+# substitue les variables `${CUBOX_*}` au démarrage. `NGINX_ENVSUBST_FILTER`
+# limite la substitution à ce préfixe — sans ce garde-fou, `$uri`,
+# `$upstream_cache_status` et consorts seraient remplacés par du vide et la
+# configuration deviendrait invalide (ou pire : silencieusement fausse).
+
+server {
+    listen 8080;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Le conteneur tourne en utilisateur non privilégié (UID 10001) : il ne
+    # peut pas ouvrir le port 80, d'où 8080. Le Service fait la traduction.
+
+    access_log off;
+
+    # ── En-têtes de sécurité ────────────────────────────────────────────────
+    add_header X-Frame-Options        "SAMEORIGIN"                        always;
+    add_header X-Content-Type-Options "nosniff"                           always;
+    add_header Referrer-Policy        "strict-origin-when-cross-origin"   always;
+    add_header Permissions-Policy     "camera=(), microphone=(), geolocation=()" always;
+    # `connect-src 'self'` suffit : grâce au relais ci-dessous, la page
+    # n'appelle jamais d'origine externe. Pas de script inline non plus.
+    add_header Content-Security-Policy
+        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'" always;
+
+    # ── Relais vers la forge ────────────────────────────────────────────────
+    location = /api/releases {
+        # `per_page=5` : la page n'affiche que la dernière version publiée,
+        # mais elle doit pouvoir ignorer un brouillon ou une préversion en
+        # tête de liste sans repartir en aller-retour.
+        proxy_pass ${CUBOX_RELEASES_BASE}/repos/${CUBOX_RELEASES_REPO}/releases?per_page=5;
+
+        proxy_ssl_server_name on;
+        proxy_ssl_name        ${CUBOX_RELEASES_HOST};
+        proxy_set_header      Host ${CUBOX_RELEASES_HOST};
+        proxy_set_header      Accept application/vnd.github+json;
+        # GitHub REJETTE toute requête sans User-Agent (403 « Request forbidden
+        # by administrative rules »). `proxy_pass_request_headers off` supprime
+        # celui du client : il faut donc le remettre explicitement.
+        proxy_set_header      User-Agent "cubox-site";
+        # Ne jamais relayer les en-têtes du client vers la forge : cette page
+        # est publique et anonyme, elle n'a rien à transmettre.
+        proxy_pass_request_headers off;
+
+        # La forge est une dépendance externe : on refuse d'attendre. Mieux
+        # vaut un message d'erreur en 5 s qu'un onglet qui tourne.
+        proxy_connect_timeout 5s;
+        proxy_send_timeout    5s;
+        proxy_read_timeout    5s;
+
+        # Cache court : la liste des versions ne change que quelques fois par
+        # an, mais on ne veut pas non plus servir une page morte pendant une
+        # heure si une release vient de sortir.
+        proxy_cache            forge;
+        proxy_cache_valid      200 5m;
+        proxy_cache_valid      any 30s;
+        # Si la forge tombe, on continue de servir la dernière réponse connue
+        # plutôt que de casser la page.
+        proxy_cache_use_stale  error timeout updating http_500 http_502 http_503 http_504;
+        proxy_cache_background_update on;
+        proxy_cache_lock       on;
+        add_header X-Cache-Status $upstream_cache_status always;
+
+        add_header Cache-Control "public, max-age=300" always;
+    }
+
+    # ── Fichiers statiques ──────────────────────────────────────────────────
+    # Pas de hash dans les noms (site à trois fichiers, pas de bundler) : on
+    # met donc un cache court plutôt qu'immuable, sinon une correction de
+    # texte mettrait un an à arriver chez les visiteurs.
+    location ~* \.(css|js|png|svg|ico)$ {
+        add_header Cache-Control "public, max-age=3600" always;
+        try_files $uri =404;
+    }
+
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
