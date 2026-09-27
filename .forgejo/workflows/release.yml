@@ -547,6 +547,29 @@ jobs:
             echo "::warning::GH_MIRROR_TOKEN absent — paquet pacman non miroité"
           fi
 
+          # ── Élagage des assets périmés du miroir ───────────────────────
+          #
+          # `gh release upload --clobber` remplace un asset de MÊME NOM ; il ne
+          # supprime pas ceux qui n'ont plus lieu d'être. Un renommage — comme
+          # celui qui a créé le doublon ci-dessus — laisse donc l'ancien en
+          # place indéfiniment. On retire ici tout paquet pacman présent sur le
+          # miroir qui ne figure pas dans depot/ : c'est exactement la
+          # définition de « périmé », et ça vaut aussi pour le ménage du passé.
+          #
+          # Volontairement limité au motif `cubox-*.pkg.tar.zst*` : on ne touche
+          # ni aux archives Windows/Linux, ni à la base, ni à la clé.
+          if [ -n "${GH_TOKEN:-}" ] && [ -d depot ]; then
+            attendus="$(cd depot && ls)"
+            gh release view "$TAG" --repo "$MIROIR" --json assets \
+              --jq '.assets[].name' | grep -E '^cubox-.*\.pkg\.tar\.zst(\.sig)?$' \
+            | while read -r a; do
+                if ! printf '%s\n' "$attendus" | grep -qxF "$a"; then
+                  gh release delete-asset "$TAG" "$a" --repo "$MIROIR" --yes \
+                    && echo "asset périmé retiré du miroir : $a"
+                fi
+              done
+          fi
+
           if [ -d depot ]; then
             {
               echo "## Dépôt pacman"
