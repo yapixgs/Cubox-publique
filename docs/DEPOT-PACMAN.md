@@ -49,11 +49,8 @@ Tout retirer : `bash install-arch.sh --desinstaller`
 ```bash
 curl -fsSL https://cubox.yabox.wasabout.net/arch/cubox-signing-key.asc \
   | sudo pacman-key --add -
-sudo pacman-key --lsign-key <EMPREINTE>
+sudo pacman-key --lsign-key 6D5DEECFCD53384532D61D667FC76ECDBCCF57F2
 ```
-
-L'empreinte est affichée dans le récapitulatif de chaque publication, et dans
-la clé elle-même (`gpg --show-keys cubox-signing-key.asc`).
 
 **2. Déclarer le dépôt** dans `/etc/pacman.conf`, à la fin du fichier :
 
@@ -73,6 +70,19 @@ Ensuite, `yay -Syu` ou `pacman -Syu` met Cubox à jour comme n'importe quel
 paquet — **sans recompiler**, en téléchargeant le binaire déjà construit.
 
 ---
+
+## L'empreinte de la clé
+
+```
+6D5D EECF CD53 3845 32D6  1D66 7FC7 6ECD BCCF 57F2
+```
+
+**Compare-la** à celle que le script d'installation t'affiche. Ce contrôle
+n'est pas une formalité : la clé est servie par le même serveur que les
+paquets. Si ce serveur était compromis, il servirait *sa* clé et *ses*
+paquets, et tout paraîtrait normal. La comparer à une source obtenue
+autrement — cette page sur GitHub, par exemple — est la seule chose qui casse
+ce cercle.
 
 ## Pourquoi `SigLevel = Required`
 

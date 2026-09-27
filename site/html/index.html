@@ -65,6 +65,20 @@
           </div>
 
           <p class="muted small" id="checksums"></p>
+
+          <!-- L'empreinte est publiée ICI, et pas seulement dans le script :
+               la comparer à une source obtenue autrement est précisément ce
+               qui empêche un serveur compromis de faire passer sa propre clé. -->
+          <div class="note" style="margin-top:.9rem">
+            <strong>🐧 Arch : mises à jour automatiques</strong>
+            <p>
+              <span class="mono">curl -fsSLO https://cubox.yabox.wasabout.net/install-arch.sh &amp;&amp; bash install-arch.sh</span><br>
+              Installe le dépôt pacman signé ; ensuite <span class="mono">yay -Syu</span> suffit.
+              Le script affichera cette empreinte — <strong>vérifie qu'elle correspond</strong> :<br>
+              <span class="mono">6D5D EECF CD53 3845 32D6  1D66 7FC7 6ECD BCCF 57F2</span><br>
+              <a href="https://github.com/yapixgs/Cubox-publique/blob/main/docs/DEPOT-PACMAN.md" rel="noopener">Détails et installation manuelle</a>
+            </p>
+          </div>
         </div>
       </section>
 
