@@ -182,20 +182,87 @@ else
   ok "dépôt ajouté (sauvegarde : $CONF.avant-cubox)"
 fi
 
-etape "4/4  Installation"
+etape "4/5  Installation"
 info "la signature est vérifiée ici : si elle ne correspond pas, pacman s'arrête"
 run_sudo pacman -Sy
 run_sudo pacman -S --needed --noconfirm cubox
 
+# ── 5. Ménage ────────────────────────────────────────────────────────────────
+# Une installation qui laisse traîner ses outils derrière elle n'est pas finie.
+etape "5/5  Ménage"
+
+# a) Le paquet téléchargé dans le cache de pacman. Il est re-téléchargeable à
+#    tout moment depuis le dépôt : le garder n'apporte rien ici, contrairement
+#    à un paquet des dépôts officiels qu'on voudrait pouvoir réinstaller
+#    hors-ligne.
+caches=$(sudo find /var/cache/pacman/pkg -maxdepth 1 -name 'cubox-*.pkg.tar.zst*' 2>/dev/null | wc -l)
+if [[ "$caches" -gt 0 ]]; then
+  run_sudo find /var/cache/pacman/pkg -maxdepth 1 -name 'cubox-*.pkg.tar.zst*' -delete
+  ok "cache pacman nettoyé ($caches fichier(s))"
+fi
+
+# b) La sauvegarde de pacman.conf. On ne la retire QU'APRÈS avoir constaté que
+#    pacman fonctionne toujours — c'est ce qu'elle servait à garantir, et une
+#    sauvegarde qu'on efface avant d'avoir vérifié ne protège de rien.
+if [[ -f "$CONF.avant-cubox" ]] && pacman -Sl cubox >/dev/null 2>&1; then
+  run_sudo rm -f "$CONF.avant-cubox"
+  ok "sauvegarde de pacman.conf retirée (pacman fonctionne, elle a fait son travail)"
+fi
+
+# c) Les restes d'une installation précédente par makepkg. Ce sont des dossiers
+#    qui appartiennent à l'utilisateur : on DEMANDE avant d'y toucher, c'est son
+#    dépôt de travail, pas le nôtre.
+restes=()
+while IFS= read -r d; do restes+=("$d"); done < <(
+  find "$HOME" -maxdepth 4 -type d -path '*/packaging/aur' 2>/dev/null)
+for aur in "${restes[@]:-}"; do
+  [[ -n "$aur" ]] || continue
+  vieux=$(find "$aur" -maxdepth 1 \( -name 'src' -o -name 'pkg' -o -name '*.pkg.tar.zst' \) 2>/dev/null | wc -l)
+  [[ "$vieux" -gt 0 ]] || continue
+  echo
+  info "restes d'une compilation précédente dans : $aur"
+  find "$aur" -maxdepth 1 \( -name 'src' -o -name 'pkg' -o -name '*.pkg.tar.zst' \) \
+    -exec du -sh {} + 2>/dev/null | sed 's/^/      /'
+  if demander "Supprimer ces fichiers de compilation ?"; then
+    find "$aur" -maxdepth 1 \( -name 'src' -o -name 'pkg' -o -name '*.pkg.tar.zst' \) \
+      -exec rm -rf {} + 2>/dev/null || true
+    ok "restes de compilation supprimés"
+  else
+    info "conservés"
+  fi
+done
+
+# d) Le script lui-même. Il a fini son travail ; le laisser traîner, c'est
+#    inviter à le relancer un jour avec une empreinte périmée.
+MOI="$(readlink -f "$0" 2>/dev/null || true)"
+
 echo
 ok "Cubox $(pacman -Q cubox | awk '{print $2}') est installé."
+
+# La preuve que l'objectif est atteint : tant que cubox apparaissait dans
+# `pacman -Qm` (paquets étrangers), yay allait le chercher sur l'AUR — où il
+# n'existe pas — et le laissait figé sans rien dire.
+if pacman -Qm 2>/dev/null | grep -q '^cubox '; then
+  echo
+  err "cubox est encore vu comme un paquet ÉTRANGER : yay ne le mettra pas à jour."
+  err "Relance : sudo pacman -S cubox   (pour le réinstaller depuis le dépôt)"
+else
+  ok "cubox vient bien du dépôt [cubox] — yay -Syu le suivra"
+fi
+
 cat <<FIN
 
     Lancer        : la commande ${B}cubox${Z}, ou l'entrée « Cubox » de ton menu
-    Mettre à jour : ${B}pacman -Syu${Z} — comme n'importe quel paquet, sans recompiler
-    Tout retirer  : ${B}bash install-arch.sh --desinstaller${Z}
+    Mettre à jour : ${B}yay -Syu${Z} — comme n'importe quel paquet, sans recompiler
+    Tout retirer  : ${B}sudo pacman -R cubox${Z} puis retirer [cubox] de $CONF
 
     Tes mondes et ta configuration vivent dans ~/.local/share/cubox
     et ne sont jamais touchés par une mise à jour.
 
+    Il ne reste sur ta machine que le logiciel et le dépôt qui le met à jour.
+
 FIN
+
+if [[ -n "$MOI" && -f "$MOI" ]]; then
+  rm -f "$MOI" && printf '%s  ✔ %s%s\n' "$G" "script d'installation supprimé ($MOI)" "$Z"
+fi

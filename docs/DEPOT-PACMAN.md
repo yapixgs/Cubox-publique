@@ -38,7 +38,34 @@ y compris le jour où la question compte.
 > c'est voulu : un script passé dans un tube s'exécute avant que tu aies pu le
 > lire. Télécharge-le, ouvre-le, puis lance-le.
 
-Tout retirer : `bash install-arch.sh --desinstaller`
+### Il fait le ménage derrière lui
+
+Une installation qui laisse traîner ses outils n'est pas terminée. À la fin, le
+script retire :
+
+- le paquet téléchargé dans le cache de pacman (re-téléchargeable à tout moment) ;
+- la sauvegarde de `pacman.conf` — **seulement après** avoir vérifié que pacman
+  fonctionne toujours, puisque c'est précisément ce qu'elle servait à garantir ;
+- les restes d'une compilation précédente (`src/`, `pkg/`, `*.pkg.tar.zst`) s'il
+  en trouve — **en demandant**, parce que ce sont tes dossiers, pas les siens ;
+- **et lui-même**. Le laisser traîner, c'est inviter à le relancer un jour avec
+  une empreinte périmée.
+
+Il ne reste que le logiciel et le dépôt qui le met à jour.
+
+Dernière vérification avant de partir, il contrôle que Cubox n'est plus un
+paquet *étranger* :
+
+```
+✔ cubox vient bien du dépôt [cubox] — yay -Syu le suivra
+```
+
+C'est exactement ce qui manquait avant : tant que `pacman -Qm` listait `cubox`,
+yay le cherchait sur l'AUR — où il n'existe pas — et le laissait figé sans rien
+dire.
+
+Tout retirer : `sudo pacman -R cubox`, puis retirer la section `[cubox]` de
+`/etc/pacman.conf`.
 
 ---
 
