@@ -4,6 +4,17 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 Les versions publiées sont téléchargeables sur
 <https://cubox.yabox.wasabout.net>.
 
+## 1.3.2
+
+### Ajouté
+- **Dépôt pacman signé** : `yay -Syu` met enfin Cubox à jour. Jusqu'ici le
+  paquet n'était sur l'AUR sous aucun nom — yay n'avait donc aucune source à
+  interroger et le laissait figé, **sans erreur**, indéfiniment.
+  Voir [`docs/DEPOT-PACMAN.md`](docs/DEPOT-PACMAN.md).
+  Les paquets et la base sont signés en GPG (`SigLevel = Required`) : pacman
+  installe en root, et le HTTPS prouve à qui l'on parle, pas qui a fabriqué le
+  paquet. Sans la clé privée, un serveur compromis ne peut rien faire passer.
+
 ## 1.3.1
 
 ### Corrigé

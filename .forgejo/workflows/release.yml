@@ -425,6 +425,76 @@ jobs:
           su constructeur -c 'cd packaging/aur && makepkg -Cf --noconfirm'
           ls -lh packaging/aur/cubox-*.pkg.tar.zst
 
+      # ──────────────────────────────────────────────────────────────────
+      # Dépôt pacman signé.
+      #
+      # POURQUOI IL EXISTE
+      # Sans lui, `yay -Syu` ne met PAS Cubox à jour : le paquet n'est sur
+      # l'AUR sous aucun nom, et yay n'a donc aucune source à interroger.
+      # Mesuré : l'API que yay appelle pour chaque paquet étranger répond
+      #   GET aur.archlinux.org/rpc/v5/info?arg[]=cubox -> {"resultcount":0}
+      # Le paquet restait installé et figé, sans erreur, indéfiniment.
+      #
+      # POURQUOI IL EST SIGNÉ
+      # pacman installe en root. Le HTTPS prouve qu'on parle au bon serveur ;
+      # il ne prouve pas QUI a fabriqué le paquet. Un détournement DNS suffit
+      # à obtenir un certificat Let's Encrypt valide pour le domaine, donc un
+      # HTTPS irréprochable servant un paquet vérolé. La signature, elle, est
+      # attachée au fichier : l'attaquant devrait aussi voler la clé privée.
+      # C'est la raison d'être du `SigLevel = Required` des dépôts officiels.
+      #
+      # OÙ IL EST HÉBERGÉ
+      # Dans les assets de la release GitHub, et exposé sous
+      # https://cubox.yabox.wasabout.net/arch/ par une redirection nginx.
+      # Pas de volume à gérer, pas de service en plus : le dépôt voyage avec
+      # la version qu'il décrit.
+      - name: Construire le dépôt pacman signé
+        id: depot
+        env:
+          CLE: ${{ secrets.ARCH_SIGNING_KEY }}
+        run: |
+          set -eu
+          if [ -z "${CLE:-}" ]; then
+            echo "::warning::secret ARCH_SIGNING_KEY absent — dépôt pacman NON publié."
+            echo "::warning::Publier un dépôt non signé serait pire que pas de dépôt :"
+            echo "::warning::pacman installe en root. On s'abstient."
+            echo "PUBLIER=non" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          pacman -S --noconfirm --needed gnupg >/dev/null
+
+          # ⚠️ Le « : » de l'epoch (1:1.3.1…) est interdit dans un nom d'asset
+          # GitHub, qui le remplace silencieusement par un « . ». pacman, lui,
+          # télécharge le nom inscrit dans la base : si les deux divergent, il
+          # demande un fichier qui n'existe pas. On renomme donc NOUS-MÊMES,
+          # avant de construire la base, pour que les deux concordent.
+          pkg="$(ls packaging/aur/cubox-*.pkg.tar.zst | head -n1)"
+          sain="$(basename "$pkg" | tr ':' '-')"
+          mkdir -p depot
+          cp "$pkg" "depot/$sain"
+
+          export GNUPGHOME=/tmp/gnupg
+          mkdir -p "$GNUPGHOME"; chmod 700 "$GNUPGHOME"
+          printf '%s' "$CLE" | base64 -d | gpg --batch --quiet --import
+          EMPREINTE="$(gpg --batch --with-colons --list-secret-keys \
+                        | awk -F: '/^fpr:/ {print $10; exit}')"
+          echo "clé de signature : $EMPREINTE"
+
+          cd depot
+          gpg --batch --yes --detach-sign --no-armor "$sain"
+          # `-s` signe aussi la base : un attaquant qui remplacerait seulement
+          # la base pourrait sinon faire pointer pacman vers autre chose.
+          repo-add -s -v cubox.db.tar.gz "$sain"
+          # Les liens produits par repo-add sont des symlinks ; GitHub ne sait
+          # pas les téléverser. On les matérialise.
+          for l in cubox.db cubox.db.sig cubox.files cubox.files.sig; do
+            [ -L "$l" ] && cp --remove-destination "$(readlink -f "$l")" "$l"
+          done
+          gpg --batch --armor --export "$EMPREINTE" > cubox-signing-key.asc
+          ls -lh
+          echo "PUBLIER=oui" >> "$GITHUB_OUTPUT"
+          echo "EMPREINTE=$EMPREINTE" >> "$GITHUB_OUTPUT"
+
       - name: Ajouter à la release (forge puis miroir)
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -453,6 +523,33 @@ jobs:
           if [ -n "${GH_TOKEN:-}" ]; then
             gh release upload "$TAG" "$pkg" --repo "$MIROIR" --clobber
             echo "miroité : $nom"
+            # Les fichiers du dépôt pacman vont aussi dans les assets : c'est
+            # eux que `Server = …/arch` sert, via la redirection nginx.
+            if [ -d depot ]; then
+              gh release upload "$TAG" depot/* --repo "$MIROIR" --clobber
+              echo "dépôt pacman miroité"
+            fi
           else
             echo "::warning::GH_MIRROR_TOKEN absent — paquet pacman non miroité"
+          fi
+
+          if [ -d depot ]; then
+            {
+              echo "## Dépôt pacman"
+              echo ""
+              echo "Ajouter à \`/etc/pacman.conf\` :"
+              echo ""
+              echo '```ini'
+              echo "[cubox]"
+              echo "SigLevel = Required DatabaseOptional"
+              echo "Server = https://cubox.yabox.wasabout.net/arch"
+              echo '```'
+              echo ""
+              echo "Puis, une seule fois :"
+              echo ""
+              echo '```sh'
+              echo "curl -fsSL https://cubox.yabox.wasabout.net/arch/cubox-signing-key.asc | sudo pacman-key --add -"
+              echo "sudo pacman-key --lsign-key ${{ steps.depot.outputs.EMPREINTE }}"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
           fi

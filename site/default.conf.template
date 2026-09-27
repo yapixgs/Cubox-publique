@@ -99,9 +99,39 @@ server {
     # Pas de hash dans les noms (site à trois fichiers, pas de bundler) : on
     # met donc un cache court plutôt qu'immuable, sinon une correction de
     # texte mettrait un an à arriver chez les visiteurs.
+    # Le script d'installation : cache court, et surtout le bon type MIME —
+    # servi en application/octet-stream, un navigateur proposerait de
+    # l'enregistrer au lieu de l'afficher, alors qu'on veut que les gens le
+    # LISENT avant de le lancer.
+    location = /install-arch.sh {
+        default_type text/plain;
+        add_header Cache-Control "public, max-age=300" always;
+        add_header Content-Disposition "inline" always;
+        try_files $uri =404;
+    }
+
     location ~* \.(css|js|png|svg|ico)$ {
         add_header Cache-Control "public, max-age=3600" always;
         try_files $uri =404;
+    }
+
+    # ── Dépôt pacman ────────────────────────────────────────────────────────
+    # `yay -Syu` ne mettait pas Cubox à jour : le paquet n'est sur l'AUR sous
+    # aucun nom, donc yay n'avait aucune source à interroger (son appel
+    # /rpc/v5/info?arg[]=cubox renvoie resultcount:0). Le paquet restait figé,
+    # sans erreur, indéfiniment.
+    #
+    # Les fichiers du dépôt (cubox.db, le paquet, leurs signatures) sont des
+    # assets de la dernière release GitHub : ils voyagent avec la version
+    # qu'ils décrivent, sans volume à gérer ni service supplémentaire. On se
+    # contente de rediriger — pacman suit les redirections.
+    #
+    # `/releases/latest/download/` pointe toujours sur la dernière release
+    # publiée : le dépôt se met donc à jour tout seul à chaque version.
+    location ~ ^/arch/(?<fichier>[A-Za-z0-9._+-]+)$ {
+        # 302 et non 301 : la cible change à chaque version, une redirection
+        # permanente serait mise en cache par les clients et figerait le dépôt.
+        return 302 https://github.com/${CUBOX_RELEASES_REPO}/releases/latest/download/$fichier;
     }
 
     location = /healthz {
