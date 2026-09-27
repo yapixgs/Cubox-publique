@@ -268,6 +268,25 @@ jobs:
           gh release upload "$TAG" dist/* --repo "$MIROIR" --clobber
           echo "assets miroités vers $MIROIR"
 
+          # ── Le CODE aussi, pas seulement les binaires ──────────────────
+          # Jusqu'ici seuls les assets étaient miroités : le `main` de GitHub
+          # datait du 2 juillet quand la forge en était au 26 septembre —
+          # presque trois mois d'écart, invisible tant que personne ne cliquait.
+          # Or le launcher et le site renvoient désormais TOUS leurs liens
+          # publics vers GitHub (README, guide débutant, CHANGELOG, licence,
+          # tickets), puisque la forge refuse l'anonyme. Un miroir de code
+          # périmé servirait donc une documentation fausse.
+          git config --global user.name  "Cubox CI"
+          git config --global user.email "ci@cloudox.invalid"
+          git remote remove miroir 2>/dev/null || true
+          git remote add miroir "https://x-access-token:${GH_TOKEN}@github.com/${MIROIR}.git"
+          # `--force` : le miroir est un reflet, pas une branche de travail.
+          # Personne n'y commite ; s'il a divergé, c'est qu'il est à recaler.
+          git push --force miroir "HEAD:refs/heads/main"
+          git push --force miroir "refs/tags/$TAG"
+          git remote remove miroir
+          echo "code et tag miroités vers $MIROIR"
+
       - name: Vérifier que le miroir est réellement téléchargeable
         env:
           VERSION: ${{ steps.version.outputs.VERSION }}
@@ -287,6 +306,18 @@ jobs:
             "https://github.com/$MIROIR/releases/download/$TAG/Cubox-$VERSION-SHA256.txt")"
           [ "$code" = "200" ] || { echo "::error::téléchargement anonyme = HTTP $code"; exit 1; }
           echo "OK : 200"
+
+          # Le launcher et le site pointent vers ces pages : si elles sont
+          # absentes du miroir, on a livré des liens morts dans un binaire
+          # distribué — impossible à rattraper sans une nouvelle version.
+          echo "— documentation publique visée par le launcher et le site"
+          for f in README.md CHANGELOG.md LICENSE \
+                   docs/GUIDE_MINECRAFT_DEBUTANT.md docs/ROADMAP.md docs/EULA.md; do
+            c="$(curl -sSL -o /dev/null -w '%{http_code}' \
+              "https://raw.githubusercontent.com/$MIROIR/main/$f")"
+            printf '  %-40s %s\n' "$f" "$c"
+            [ "$c" = "200" ] || { echo "::error::$f absent du miroir"; exit 1; }
+          done
 
       - name: Récapitulatif
         if: always()

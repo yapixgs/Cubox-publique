@@ -44,7 +44,12 @@ public final class Metadata {
     public static final int MINIMUM_SUPPORTED_JAVA_VERSION = 17;
     public static final int RECOMMENDED_JAVA_VERSION = 21;
 
-    public static final String PUBLISH_URL = "https://forge.oxitablock.com/Yapix839/Cubox";
+    /// Adresse publique du projet, affichée dans le launcher.
+    ///
+    /// Le miroir GitHub, et non la forge : la forge exige une connexion, même
+    /// pour un dépôt marqué public. Un utilisateur qui clique sur ce lien
+    /// depuis le launcher tomberait sur une page 404.
+    public static final String PUBLISH_URL = "https://github.com/yapixgs/Cubox-publique";
     public static final String DOWNLOAD_URL = PUBLISH_URL + "/releases";
     public static final String HMCL_UPDATE_URL = System.getProperty("hmcl.update_source.override", PUBLISH_URL + "/api/update_link");
     public static final String MANUAL_UPDATE_URL = PUBLISH_URL + "/releases";

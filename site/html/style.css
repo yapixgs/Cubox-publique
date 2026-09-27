@@ -84,9 +84,9 @@ a:hover { color: var(--green-bright); }
 }
 
 h1, h2, h3 { line-height: 1.15; font-weight: 700; letter-spacing: -.02em; }
-h1 { font-size: clamp(2.2rem, 1.4rem + 3vw, 4rem); }
-h2 { font-size: clamp(1.5rem, 1.1rem + 1.5vw, 2.4rem); margin-bottom: .75rem; }
-h3 { font-size: clamp(1.1rem, 1rem + .5vw, 1.35rem); margin-bottom: .4rem; }
+h1 { font-size: clamp(2rem, 1.3rem + 2.4vw, 3.1rem); }
+h2 { font-size: clamp(1.35rem, 1.05rem + 1.1vw, 1.9rem); margin-bottom: .4rem; }
+h3 { font-size: clamp(1.05rem, .98rem + .4vw, 1.2rem); margin-bottom: .3rem; }
 
 .grad-text {
   background: var(--grad);
@@ -100,8 +100,12 @@ h3 { font-size: clamp(1.1rem, 1rem + .5vw, 1.35rem); margin-bottom: .4rem; }
 /* padding-inline et padding-block SÉPARÉS : un shorthand sur .section
    écraserait la gouttière de .container quand les deux classes cohabitent
    (contenu collé au bord sur mobile). Même piège que dans Helipix. */
-.container { width: 100%; max-width: 1140px; margin: 0 auto; padding-inline: 1.25rem; }
-.section { padding-block: clamp(2.5rem, 5vw, 5rem); }
+.container { width: 100%; max-width: 1080px; margin: 0 auto; padding-inline: 1.25rem; }
+/* Page condensée : l'ancienne gouttière (jusqu'à 5rem par section, soit 10rem
+   entre deux blocs) obligeait à faire défiler pour un contenu qui tient
+   largement. On garde de l'air, pas du vide. */
+.section { padding-block: clamp(1.75rem, 3vw, 2.75rem); }
+.section + .section { padding-block-start: 0; }
 .row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
 
 /* ── Barre du haut ──────────────────────────────────────────────────────── */
@@ -128,8 +132,8 @@ h3 { font-size: clamp(1.1rem, 1rem + .5vw, 1.35rem); margin-bottom: .4rem; }
 /* ── Boutons ────────────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
-  padding: .7rem 1.25rem; border-radius: var(--r-full);
-  font-weight: 600; font-size: .95rem; font-family: inherit;
+  padding: .6rem 1.1rem; border-radius: var(--r-full);
+  font-weight: 600; font-size: .9rem; font-family: inherit;
   border: 1px solid transparent; cursor: pointer;
   transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
               background var(--dur) var(--ease), color var(--dur) var(--ease);
@@ -144,11 +148,11 @@ h3 { font-size: clamp(1.1rem, 1rem + .5vw, 1.35rem); margin-bottom: .4rem; }
 .btn-ghost:hover { color: var(--text); border-color: var(--line); }
 
 /* ── Héros ──────────────────────────────────────────────────────────────── */
-.hero { padding-block: clamp(3rem, 8vw, 6.5rem); }
-.hero .lead { max-width: 62ch; margin-top: 1rem; font-size: clamp(1rem, .95rem + .3vw, 1.2rem); color: var(--text-soft); }
-.hero-actions { margin-top: 2rem; }
+.hero { padding-block: clamp(2rem, 4.5vw, 3.25rem); }
+.hero .lead { max-width: 60ch; margin-top: .75rem; font-size: clamp(.98rem, .94rem + .2vw, 1.08rem); color: var(--text-soft); }
+.hero-actions { margin-top: 1.25rem; }
 .badge {
-  display: inline-block; margin-bottom: 1.1rem;
+  display: inline-block; margin-bottom: .75rem;
   padding: .3rem .85rem; border-radius: var(--r-full);
   background: var(--grad-soft); border: 1px solid var(--line);
   font-size: .8rem; font-weight: 600; letter-spacing: .04em;
@@ -156,57 +160,67 @@ h3 { font-size: clamp(1.1rem, 1rem + .5vw, 1.35rem); margin-bottom: .4rem; }
 }
 
 /* ── Grilles et cartes ──────────────────────────────────────────────────── */
-.grid { display: grid; gap: 1.25rem; margin-top: 1.75rem; }
-.grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-.grid-3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.grid { display: grid; gap: .9rem; margin-top: 1.1rem; }
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.grid-4 { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
 
 .card {
   background: linear-gradient(145deg, var(--surface), var(--surface-2));
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  padding: 1.5rem;
+  border-radius: var(--r-md);
+  padding: 1.1rem 1.15rem;
   box-shadow: var(--sh-2);
   transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
-.card p { color: var(--text-soft); }
-.card:hover { transform: translateY(-4px); border-color: rgba(94, 164, 255, .3); box-shadow: var(--sh-3); }
+.card p { color: var(--text-soft); font-size: .92rem; }
+.card:hover { transform: translateY(-2px); border-color: rgba(94, 164, 255, .3); box-shadow: var(--sh-3); }
 .skeleton { opacity: .6; }
 
 /* Carte de téléchargement */
-.dl { display: flex; flex-direction: column; gap: .85rem; }
-.dl-os { display: flex; align-items: center; gap: .6rem; font-size: 1.15rem; font-weight: 700; }
-.dl-os .ico { font-size: 1.5rem; line-height: 1; }
+.dl { display: flex; flex-direction: column; gap: .6rem; }
+.dl-os { display: flex; align-items: center; gap: .5rem; font-size: 1.05rem; font-weight: 700; }
+.dl-os .ico { font-size: 1.25rem; line-height: 1; }
 .dl-meta { font-family: var(--ff-mono); font-size: .8rem; color: var(--text-fade); }
 .dl .btn { width: 100%; }
 .dl-hint { font-size: .85rem; color: var(--text-soft); }
 
 /* Étapes */
-.step { position: relative; padding-top: 2.5rem; }
+.step { position: relative; padding-left: 3rem; }
 .step-n {
-  position: absolute; top: 1.25rem; left: 1.5rem;
-  display: grid; place-items: center; width: 30px; height: 30px;
+  position: absolute; top: 1.1rem; left: 1.1rem;
+  display: grid; place-items: center; width: 26px; height: 26px;
   border-radius: var(--r-full); background: var(--grad); color: #071322;
   font-weight: 700; font-size: .95rem;
 }
 
-/* Encadré */
+/* Encadré.
+   L'ancienne version teintait le fond en rgba(245,179,56,.07) : sur le navy,
+   ça rendait un beige sale qui n'appartenait à aucune couleur de la charte.
+   On garde la même information — c'est un avertissement — mais portée par la
+   surface habituelle et un liseré ambre, sans laver le fond. */
 .note {
-  margin-top: 1.75rem; padding: 1.25rem 1.4rem;
-  border-radius: var(--r-md); border: 1px solid var(--line);
-  background: rgba(245, 179, 56, .07);
+  margin-top: 1.1rem; padding: .9rem 1.1rem;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
   border-left: 3px solid var(--warn);
+  background: linear-gradient(145deg, var(--surface), var(--surface-2));
+  font-size: .92rem;
 }
-.note p { color: var(--text-soft); margin-top: .4rem; }
-.note-err { background: rgba(255, 92, 122, .08); border-left-color: var(--err); }
+.note strong { color: var(--warn); }
+.note p { color: var(--text-soft); margin-top: .3rem; }
+.note-err { border-left-color: var(--err); }
+.note-err strong { color: var(--err); }
 
 /* ── Pied de page ───────────────────────────────────────────────────────── */
 .footer {
-  margin-top: 3rem; padding-block: 2.5rem;
+  margin-top: 2rem; padding-block: 1.5rem;
   border-top: 1px solid var(--line);
-  background: rgba(10, 15, 28, .5);
-  font-size: .9rem; color: var(--text-soft);
+  font-size: .85rem; color: var(--text-fade);
 }
-.footer p + p { margin-top: .5rem; }
+.footer p + p { margin-top: .35rem; }
+.footer a { color: var(--text-soft); }
+.footer a:hover { color: var(--blue-bright); }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
