@@ -111,7 +111,7 @@ public final class TerracottaMetadata {
     public static final String PACKAGE_NAME;
     public static final List<Link> PACKAGE_LINKS;
     // Cubox: feedback repointé vers les issues de notre forge
-    public static final String FEEDBACK_LINK = NetworkUtils.withQuery("https://forge.oxitablock.com/Yapix839/Cubox/issues", Map.of(
+    public static final String FEEDBACK_LINK = NetworkUtils.withQuery("https://github.com/yapixgs/Cubox-publique/issues", Map.of(
             "v", "v1",
             "launcher_version", Metadata.VERSION
     ));

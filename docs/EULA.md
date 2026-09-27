@@ -10,7 +10,7 @@
 
 ## 2. Licence
 - Cubox est publié sous la **GNU General Public License v3.0** (comme HMCL).
-- Le code source est disponible ici : https://forge.oxitablock.com/Yapix839/Cubox
+- Le code source est disponible ici : https://github.com/yapixgs/Cubox-publique
 
 ## 3. Compte Minecraft
 - Pour jouer en ligne sur les serveurs officiels/premium, un **compte Microsoft**

@@ -129,8 +129,12 @@ Microsoft requis.
 | `.forgejo/workflows/` | intégration continue (runner Cloudox) |
 | `docs/` | documentation |
 
-Le déploiement du site vit dans un autre dépôt :
-[`Cloudox/infra`](https://forge.oxitablock.com/Cloudox/infra) → `tenants/cubox/`.
+Le déploiement du site vit dans `Cloudox/infra` → `tenants/cubox/`, sur la
+forge interne — ce lien-là n'est volontairement pas public.
+
+> ℹ️ **Forge et miroir.** Le développement se fait sur une forge privée ; ce
+> dépôt GitHub en est le **miroir public**, et c'est lui que visent tous les
+> liens du launcher et du site. Les *issues* et les *releases* sont ici.
 
 ---
 

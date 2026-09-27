@@ -10,17 +10,23 @@
     <link rel="stylesheet" href="/style.css">
   </head>
   <body>
+    <!-- TOUS les liens publics pointent vers le miroir GitHub, jamais vers la
+         forge : la forge exige une connexion, même pour un dépôt marqué public
+         (404 anonyme sur l'API, la page du dépôt et les assets — mesuré). Un
+         lien vers la forge sur une page publique est un lien mort.
+         La forge est l'endroit où l'on travaille, GitHub est le public.
+         Seule la page /admin, protégée par SSO, pointe encore vers la forge. -->
     <header class="topbar">
       <div class="container row topbar-inner">
         <a class="brand row" href="/">
-          <img src="/cubox.png" alt="" width="40" height="40">
+          <img src="/cubox.png" alt="" width="34" height="34">
           <span>Cubox <small>by Cloudox</small></span>
         </a>
         <nav class="row nav">
           <a href="#telecharger">Télécharger</a>
           <a href="#fonctions">Fonctions</a>
           <a href="#demarrer">Démarrer</a>
-          <a class="btn btn-ghost" href="https://forge.oxitablock.com/Cloudox/Cubox" rel="noopener">Code source</a>
+          <a class="btn btn-ghost" href="https://github.com/yapixgs/Cubox-publique" rel="noopener">Code source</a>
         </nav>
       </div>
     </header>
@@ -32,15 +38,14 @@
           <span class="badge" id="badge-version">Chargement…</span>
           <h1>Minecraft, <span class="grad-text">sans compte Microsoft</span>.</h1>
           <p class="lead">
-            Cubox est un launcher Minecraft Java Edition qui tourne
-            <strong>hors-ligne</strong> : un pseudo suffit, rien n'est envoyé à
-            Microsoft. Forge, Fabric, Quilt, NeoForge et OptiFine sont gérés
-            nativement, et un JRE Java&nbsp;21 est déjà dans le paquet — il n'y
-            a rien à installer à côté.
+            Launcher Minecraft Java Edition qui tourne <strong>hors-ligne</strong> :
+            un pseudo suffit, rien n'est envoyé à Microsoft. Forge, Fabric, Quilt,
+            NeoForge et OptiFine gérés nativement, et Java&nbsp;21 est déjà dans le
+            paquet — il n'y a rien à installer à côté.
           </p>
           <div class="row hero-actions">
             <a class="btn btn-primary" href="#telecharger">Télécharger Cubox</a>
-            <a class="btn btn-outline" href="https://forge.oxitablock.com/Cloudox/Cubox/releases" rel="noopener">Toutes les versions</a>
+            <a class="btn btn-outline" href="https://github.com/yapixgs/Cubox-publique/releases" rel="noopener">Toutes les versions</a>
           </div>
         </div>
       </section>
@@ -49,15 +54,12 @@
       <section class="section" id="telecharger">
         <div class="container">
           <h2>Télécharger</h2>
-          <p class="muted">
-            Décompresse, lance, c'est tout. Le Java nécessaire est inclus dans
-            chaque archive.
-          </p>
+          <p class="muted small">Décompresse, lance, c'est tout. Java est inclus dans chaque archive.</p>
 
-          <!-- Rempli par app.js depuis /api/releases. Le contenu statique
-               ci-dessous est l'état « en cours de chargement » ; si la forge
-               est injoignable, app.js le remplace par un message clair et un
-               lien direct — jamais par une page vide. -->
+          <!-- Rempli par app.js. Le contenu ci-dessous est l'état « en cours de
+               chargement » ; si le miroir est injoignable, app.js le remplace
+               par un message clair et un lien direct — jamais par une page
+               vide. -->
           <div class="grid grid-3" id="downloads">
             <div class="card skeleton"><p class="muted">Chargement des versions…</p></div>
           </div>
@@ -70,36 +72,34 @@
       <section class="section" id="fonctions">
         <div class="container">
           <h2>Ce que fait Cubox</h2>
-          <div class="grid grid-2">
+          <div class="grid grid-4">
             <article class="card">
-              <h3>🧩 Mods et modpacks natifs</h3>
+              <h3>🧩 Mods et modpacks</h3>
               <p>
-                Forge, Fabric, Quilt, NeoForge et OptiFine s'installent depuis
-                le launcher. Import direct des modpacks Modrinth, CurseForge et
-                MultiMC, et navigateur Modrinth intégré.
+                Forge, Fabric, Quilt, NeoForge et OptiFine depuis le launcher.
+                Import Modrinth, CurseForge et MultiMC, navigateur Modrinth intégré.
               </p>
             </article>
             <article class="card">
-              <h3>🔒 Aucun compte, aucune télémétrie</h3>
+              <h3>🔒 Aucun compte</h3>
               <p>
                 Mode hors-ligne par défaut : un pseudo, rien d'autre. L'auto-update
-                vers les serveurs d'origine est désactivée — Cubox ne téléphone
-                à personne.
+                est désactivée — Cubox ne téléphone à personne.
               </p>
             </article>
             <article class="card">
               <h3>🎨 Skins persos</h3>
               <p>
-                Skins via <span class="mono">authlib-injector</span> (Ely.by par
-                exemple), toujours sans compte Microsoft. Entièrement optionnel.
+                Via <span class="mono">authlib-injector</span> (Ely.by par exemple),
+                toujours sans compte Microsoft. Entièrement optionnel.
               </p>
             </article>
             <article class="card">
               <h3>💻 Windows, Linux, Arch</h3>
               <p>
                 Le même build produit le <span class="mono">.exe</span>, le
-                <span class="mono">.sh</span> et un paquet
-                <span class="mono">pacman</span>. Interface en français.
+                <span class="mono">.sh</span> et un paquet <span class="mono">pacman</span>.
+                Interface en français.
               </p>
             </article>
           </div>
@@ -115,19 +115,17 @@
               <span class="step-n">1</span>
               <h3>Installer</h3>
               <p>
-                Windows : décompresse le <span class="mono">.zip</span> et
-                double-clique <span class="mono">Cubox.exe</span>.<br>
-                Linux : décompresse le <span class="mono">.tar.gz</span> et lance
-                <span class="mono">./Cubox.sh</span>.<br>
-                Arch : <span class="mono">sudo pacman -U cubox-*.pkg.tar.zst</span>
+                Windows : <span class="mono">Installer.exe</span>.
+                Linux : <span class="mono">./install.sh</span>.
+                Arch : <span class="mono">pacman -U</span>.
               </p>
             </article>
             <article class="card step">
               <span class="step-n">2</span>
               <h3>Choisir un pseudo</h3>
               <p>
-                Au premier lancement, crée un compte hors-ligne : un pseudo
-                suffit. Un mini-guide « Premiers pas » t'accompagne.
+                Au premier lancement, un compte hors-ligne suffit. Un mini-guide
+                « Premiers pas » t'accompagne.
               </p>
             </article>
             <article class="card step">
@@ -135,30 +133,27 @@
               <h3>Jouer</h3>
               <p>
                 Solo, LAN, serveurs non-premium et modpacks fonctionnent
-                immédiatement. Le guide débutant détaille chaque cas.
+                immédiatement.
               </p>
             </article>
           </div>
 
-          <div class="note note-warn">
+          <div class="note">
             <strong>⚠️ Serveurs premium</strong>
             <p>
               Les serveurs qui exigent une vérification du compte Microsoft
-              (Hypixel et consorts) <strong>refuseront la connexion</strong>.
-              C'est une protection côté serveur qu'aucun launcher hors-ligne ne
-              peut contourner — ce n'est pas un défaut de Cubox. Les serveurs
-              <span class="mono">online-mode=false</span>, le solo, le LAN et
-              tes propres serveurs marchent parfaitement.
+              (Hypixel et consorts) <strong>refuseront la connexion</strong> :
+              c'est une protection côté serveur qu'aucun launcher hors-ligne ne
+              peut contourner, ce n'est pas un défaut de Cubox. Le solo, le LAN,
+              tes propres serveurs et ceux en
+              <span class="mono">online-mode=false</span> marchent parfaitement.
             </p>
           </div>
 
-          <p>
-            <a class="btn btn-outline" href="https://forge.oxitablock.com/Cloudox/Cubox/src/branch/main/docs/GUIDE_MINECRAFT_DEBUTANT.md" rel="noopener">
-              Guide Minecraft pour débutants
-            </a>
-            <a class="btn btn-ghost" href="https://forge.oxitablock.com/Cloudox/Cubox/src/branch/main/docs/ROADMAP.md" rel="noopener">
-              Feuille de route
-            </a>
+          <p class="row" style="margin-top:1.1rem">
+            <a class="btn btn-outline" href="https://github.com/yapixgs/Cubox-publique/blob/main/docs/GUIDE_MINECRAFT_DEBUTANT.md" rel="noopener">Guide débutant</a>
+            <a class="btn btn-ghost" href="https://github.com/yapixgs/Cubox-publique/blob/main/CHANGELOG.md" rel="noopener">Nouveautés</a>
+            <a class="btn btn-ghost" href="https://github.com/yapixgs/Cubox-publique/issues" rel="noopener">Signaler un problème</a>
           </p>
         </div>
       </section>
@@ -168,14 +163,15 @@
       <div class="container">
         <p>
           <strong>Cubox</strong> — fork non-officiel de
-          <a href="https://github.com/HMCL-dev/HMCL" rel="noopener">HMCL</a>,
-          sous licence <a href="https://forge.oxitablock.com/Cloudox/Cubox/src/branch/main/LICENSE" rel="noopener">GPLv3</a>.
+          <a href="https://github.com/HMCL-dev/HMCL" rel="noopener">HMCL</a>, sous licence
+          <a href="https://github.com/yapixgs/Cubox-publique/blob/main/LICENSE" rel="noopener">GPLv3</a>.
           Sans affiliation avec Mojang, Microsoft ou l'équipe HMCL.
         </p>
-        <p class="muted small">
-          Hébergé par <a href="https://forge.oxitablock.com/Cloudox/infra" rel="noopener">Cloudox</a>
-          · <a href="https://forge.oxitablock.com/Cloudox/Cubox" rel="noopener">Code source</a>
-          · <a href="https://forge.oxitablock.com/Cloudox/Cubox/src/branch/main/docs/EULA.md" rel="noopener">Conditions d'utilisation</a>
+        <p>
+          <a href="https://github.com/yapixgs/Cubox-publique" rel="noopener">Code source</a> ·
+          <a href="https://github.com/yapixgs/Cubox-publique/blob/main/docs/EULA.md" rel="noopener">Conditions d'utilisation</a> ·
+          <a href="https://github.com/yapixgs/Cubox-publique/blob/main/docs/ROADMAP.md" rel="noopener">Feuille de route</a> ·
+          hébergé par Cloudox
         </p>
       </div>
     </footer>
