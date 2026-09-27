@@ -114,6 +114,7 @@ Microsoft requis.
 |---|---|
 | [`docs/GUIDE_MINECRAFT_DEBUTANT.md`](docs/GUIDE_MINECRAFT_DEBUTANT.md) | Pour débuter : solo, LAN, serveurs, mods |
 | [`docs/PUBLIER-UNE-VERSION.md`](docs/PUBLIER-UNE-VERSION.md) | Sortir une version, et ce que la CI vérifie |
+| [`docs/DEPOT-PACMAN.md`](docs/DEPOT-PACMAN.md) | Mises à jour automatiques sous Arch, et pourquoi le dépôt est signé |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Fonctionnalités et pistes |
 | [`CHANGELOG.md`](CHANGELOG.md) | Journal des versions |
 | [`site/README.md`](site/README.md) | La page publique |

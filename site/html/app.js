@@ -35,6 +35,10 @@ const PLATEFORMES = [
     nom: 'Arch Linux',
     detail: 'paquet pacman',
     hint: 'sudo pacman -U cubox-*.pkg.tar.zst',
+    // Le dépôt pacman est la vraie réponse pour un utilisateur Arch : sans lui,
+    // `yay -Syu` ne met PAS Cubox à jour (le paquet n'est sur l'AUR sous aucun
+    // nom) et reste figé sans erreur.
+    extra: '<a href="https://github.com/yapixgs/Cubox-publique/blob/main/docs/DEPOT-PACMAN.md" rel="noopener">Dépôt pacman → mises à jour automatiques</a>',
     match: (n) => n.endsWith('.pkg.tar.zst'),
   },
 ];
@@ -99,7 +103,7 @@ function rendreRelease(release) {
         <div class="dl-meta">${esc(p.detail)} · ${esc(taille(asset.size))}</div>
         <a class="btn btn-primary" href="${esc(asset.browser_download_url)}"
            download>Télécharger ${esc(version)}</a>
-        <p class="dl-hint">${esc(p.hint)}</p>
+        <p class="dl-hint">${esc(p.hint)}${p.extra ? '<br>' + p.extra : ''}</p>
       </article>`;
   });
 
