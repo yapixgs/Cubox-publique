@@ -95,7 +95,15 @@ jobs:
           git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
           entete="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
           git -c http.extraheader="$entete" fetch --tags origin
-          git checkout -q "$GITHUB_SHA"
+          # Sur un déclenchement manuel, GITHUB_SHA vaut la tête de la branche
+          # choisie — pas le commit du tag qu'on republie. Rejouer la
+          # publication de v1.3.2 depuis `main` construirait donc le code de
+          # `main`, et l'étiquetterait 1.3.2. On se place sur le TAG.
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            git checkout -q "refs/tags/${{ github.event.inputs.tag }}"
+          else
+            git checkout -q "$GITHUB_SHA"
+          fi
 
       - name: Déterminer la version
         id: version
@@ -413,7 +421,15 @@ jobs:
           git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
           entete="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
           git -c http.extraheader="$entete" fetch --tags origin
-          git checkout -q "$GITHUB_SHA"
+          # Sur un déclenchement manuel, GITHUB_SHA vaut la tête de la branche
+          # choisie — pas le commit du tag qu'on republie. Rejouer la
+          # publication de v1.3.2 depuis `main` construirait donc le code de
+          # `main`, et l'étiquetterait 1.3.2. On se place sur le TAG.
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            git checkout -q "refs/tags/${{ github.event.inputs.tag }}"
+          else
+            git checkout -q "$GITHUB_SHA"
+          fi
 
       - name: Construire le paquet
         run: |
@@ -431,9 +447,12 @@ jobs:
           # « 1.3.2 » en « 1.3.2.unofficial-1b98053 ». On le vérifie ici plutôt
           # que de le découvrir sur une capture d'écran d'utilisateur.
           attendu="$(sed -n 's/^versionRoot=//p' config/project.properties | tr -d ' \r')"
+          # On lit le NOM du jar (Cubox-<version>.jar) et non le manifeste :
+          # MANIFEST.MF replie ses lignes à 72 caractères, une valeur longue y
+          # est coupée en deux et un `sed` naïf ne lit que la première moitié.
+          # Le nom du fichier, lui, vient directement de la version Gradle.
           jar="$(find packaging/aur -name 'Cubox-*.jar' | head -n1)"
-          reel="$(unzip -p "$jar" META-INF/MANIFEST.MF 2>/dev/null \
-                  | tr -d '\r' | sed -n 's/^hmcl.version: //p')"
+          reel="$(basename "$jar" .jar)"; reel="${reel#Cubox-}"
           echo "version embarquée dans le jar : ${reel:-<illisible>}"
           if [ -n "$reel" ] && [ "$reel" != "$attendu" ]; then
             echo "::error::le jar annonce « $reel » au lieu de « $attendu »"
