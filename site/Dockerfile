@@ -34,6 +34,9 @@ COPY site/nginx-main.conf         /etc/nginx/nginx.conf
 COPY site/default.conf.template   /etc/nginx/templates/default.conf.template
 COPY site/html/                   /usr/share/nginx/html/
 COPY HMCL/image/cubox.png         /usr/share/nginx/html/cubox.png
+# Le script d'installation Arch est servi par le site : c'est l'adresse qu'on
+# donne aux gens, elle doit être stable et indépendante de la dernière release.
+COPY packaging/arch/install-arch.sh /usr/share/nginx/html/install-arch.sh
 
 # L'entrypoint officiel écrit le résultat de la substitution dans
 # /etc/nginx/conf.d/ : ce dossier doit appartenir à l'utilisateur du conteneur,

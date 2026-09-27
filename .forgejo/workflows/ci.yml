@@ -289,5 +289,7 @@ jobs:
           bash -n packaging/installer/install.sh
           bash -n packaging/installer/uninstall.sh
           bash -n packaging/make-release.sh
+          bash -n packaging/arch/install-arch.sh
           shellcheck -S warning packaging/installer/install.sh \
-                                packaging/installer/uninstall.sh
+                                packaging/installer/uninstall.sh \
+                                packaging/arch/install-arch.sh

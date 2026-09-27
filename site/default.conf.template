@@ -99,6 +99,17 @@ server {
     # Pas de hash dans les noms (site à trois fichiers, pas de bundler) : on
     # met donc un cache court plutôt qu'immuable, sinon une correction de
     # texte mettrait un an à arriver chez les visiteurs.
+    # Le script d'installation : cache court, et surtout le bon type MIME —
+    # servi en application/octet-stream, un navigateur proposerait de
+    # l'enregistrer au lieu de l'afficher, alors qu'on veut que les gens le
+    # LISENT avant de le lancer.
+    location = /install-arch.sh {
+        default_type text/plain;
+        add_header Cache-Control "public, max-age=300" always;
+        add_header Content-Disposition "inline" always;
+        try_files $uri =404;
+    }
+
     location ~* \.(css|js|png|svg|ico)$ {
         add_header Cache-Control "public, max-age=3600" always;
         try_files $uri =404;

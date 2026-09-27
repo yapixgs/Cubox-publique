@@ -16,7 +16,33 @@ Le dépôt pacman ci-dessous corrige ça.
 
 ---
 
-## Installation — une seule fois
+## Installation automatique (recommandé)
+
+```bash
+curl -fsSLO https://cubox.yabox.wasabout.net/install-arch.sh
+bash install-arch.sh
+```
+
+Le script installe la clé, déclare le dépôt et installe Cubox. Il **affiche
+chaque commande privilégiée** avant de la lancer, et ne pose **qu'une seule
+question** : celle qui engage vraiment quelque chose — faire confiance à la
+clé de signature, ce qui revient à autoriser l'installation de logiciels en
+root sur ta machine.
+
+Le reste (télécharger un fichier, ajouter une ligne à `pacman.conf`, lancer
+`pacman -S`) sont les gestes ordinaires d'une installation. Multiplier les
+« continuer ? » n'ajoute aucune sécurité : ça apprend à taper « o » sans lire,
+y compris le jour où la question compte.
+
+> Il refuse de tourner sans terminal — donc `curl … | bash` ne marche pas, et
+> c'est voulu : un script passé dans un tube s'exécute avant que tu aies pu le
+> lire. Télécharge-le, ouvre-le, puis lance-le.
+
+Tout retirer : `bash install-arch.sh --desinstaller`
+
+---
+
+## Installation manuelle — une seule fois
 
 **1. Faire confiance à la clé qui signe les paquets**
 
