@@ -2,7 +2,7 @@
 pkgname=cubox
 # Version dynamique : dérivée du git (voir pkgver() plus bas).
 # La valeur ci-dessous n'est qu'un placeholder, makepkg la remplace au build.
-pkgver=1.3.2
+pkgver=1.3.3
 pkgrel=1
 # epoch=1 : la version est passée de « 3.15.* » à « 1.0.* ». Sans epoch, pacman
 # verrait 1.0 < 3.15 et refuserait la mise à jour (downgrade). L'epoch prime sur
@@ -65,11 +65,29 @@ build() {
   export CURSEFORGE_API_KEY="${CURSEFORGE_API_KEY:-}"
 
   # Gradle télécharge ses dépendances depuis Internet.
-  JAVA_TOOL_OPTIONS="-XX:-UsePerfData" VERSION_TYPE="unofficial" \
-    "$JAVA_HOME/bin/java" -version
+  JAVA_TOOL_OPTIONS="-XX:-UsePerfData" "$JAVA_HOME/bin/java" -version
+
+  # ⚠️ `env -u GITHUB_SHA` N'EST PAS COSMÉTIQUE : c'est ce qui décide du
+  # numéro AFFICHÉ DANS LA FENÊTRE du launcher.
+  #
+  #   HMCL/build.gradle.kts :
+  #     shortCommit = getenv("GITHUB_SHA")?.substring(0, 7)
+  #     version = if (shortCommit.isNullOrBlank()) versionRoot
+  #               else "$versionRoot.unofficial-$shortCommit"
+  #
+  # Quand ce PKGBUILD tourne en intégration continue, la variable est exportée
+  # par le runner : le titre devenait « Cubox v1.3.2.unofficial-1b98053 » alors
+  # que le paquet, lui, s'appelait bien 1.3.2. Deux numéros pour une seule
+  # version, dont un faux — et c'est le faux que voit l'utilisateur.
+  #
+  # On la RETIRE plutôt que de la vider : "".substring(0, 7) lève une
+  # exception côté Gradle.
+  #
+  # VERSION_TYPE n'est volontairement plus forcé à « unofficial » : il ne sert
+  # qu'à étiqueter le canal de mise à jour, et Cubox n'en a pas.
   # `clean` d'abord : garantit que le jar embarque bien la version courante
   # (hmcl.properties), même si un build/ d'une compilation précédente traîne.
-  JAVA_TOOL_OPTIONS="-XX:-UsePerfData" VERSION_TYPE="unofficial" \
+  env -u GITHUB_SHA -u BUILD_NUMBER JAVA_TOOL_OPTIONS="-XX:-UsePerfData" \
     ./gradlew clean :HMCL:makeExecutables --no-daemon --stacktrace
 }
 

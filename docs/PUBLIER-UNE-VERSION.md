@@ -1,159 +1,88 @@
-# Publier une version de Cubox
+# Publier une version
 
-Tout passe par la CI. Il n'y a **plus rien à construire ni à téléverser à la
-main** : la seule action manuelle est de poser un tag.
-
----
-
-## En une minute
+Pour les mainteneurs. Il n'y a **rien à construire ni à téléverser à la main** :
+poser un tag suffit.
 
 ```bash
-# 1. Aligner le numéro de version dans le code
-#    (config/project.properties ET packaging/aur/PKGBUILD)
-# 2. Fusionner cette modification dans main
-# 3. Poser le tag
-git switch main && git pull
-git tag v1.3
-git push origin v1.3
+# 1. aligner le numéro de version (deux fichiers)
+#      config/project.properties   versionRoot=1.3.3
+#      packaging/aur/PKGBUILD      pkgver=1.3.3
+# 2. fusionner, puis
+git tag v1.3.3 && git push origin v1.3.3
 ```
 
-Le workflow **Release** fait le reste et **s'arrête net** si quelque chose ne
-colle pas. Ce n'est pas de la prudence décorative : chaque contrôle correspond
-à une erreur qui a réellement pu se produire.
+La chaîne de publication construit, vérifie, publie et **s'arrête net** si
+quelque chose ne colle pas.
 
----
+## Ce qu'elle vérifie
 
-## Ce que la CI fait, dans l'ordre
+| Contrôle | Ce qu'il empêche |
+|---|---|
+| tag ↔ `versionRoot` | un tag `v1.3.3` embarquant du code versionné 1.3.2 |
+| version inscrite dans le jar | un numéro affiché dans la fenêtre différent du numéro du paquet |
+| contenu des archives | une archive sans installeur ou sans Java |
+| sommes de contrôle | une archive corrompue |
+| **téléchargement anonyme** | publier une version que personne ne peut récupérer |
+| pages de documentation | livrer un binaire contenant des liens morts |
 
-| # | Étape | Ce qu'elle empêche |
-|---|---|---|
-| 1 | Compare le tag à `versionRoot` | Un tag `v1.3` portant du code versionné 1.2 : les binaires ne veulent plus rien dire |
-| 2 | `make-release.sh`, avec `makensis` | — |
-| 3 | Vérifie le **contenu** des archives | Une archive sans `Installer.exe` ou sans JRE — la régression que l'utilisateur découvrirait à notre place |
-| 4 | `sha256sum -c` | Une archive corrompue |
-| 5 | Publie sur la forge | — |
-| 6 | Miroite vers GitHub | — |
-| 7 | **Télécharge un asset sans authentification** | Publier une version que personne ne peut récupérer |
-| 8 | Construit le paquet pacman (`archlinux:base-devel`) | — |
+Le dernier contrôle télécharge un fichier **sans aucune authentification** :
+c'est ce que verra un visiteur. Vérifier en étant authentifié ne prouverait
+rien.
 
-L'étape 7 est la plus importante et la moins évidente. Voir plus bas.
-
----
-
-## Aligner la version — les deux endroits
-
-```properties
-# config/project.properties
-versionRoot=1.3
-```
-
-```bash
-# packaging/aur/PKGBUILD
-pkgver=1.3
-# et dans la fonction pkgver() :
-printf "1.3.r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
-```
-
-Si `versionRoot` ne correspond pas au tag, la CI refuse de publier — c'est
-l'étape 1.
-
-Pensez aussi à `CHANGELOG.md`, qui n'est pas vérifié automatiquement.
-
----
-
-## ⚠️ Pourquoi les téléchargements passent par GitHub
-
-**La forge exige une connexion, même pour un dépôt marqué public.** Mesuré
-depuis un conteneur sans identifiants :
+## Ce qu'elle produit
 
 ```
-/api/v1/version                                      200
-/api/v1/repos/Cloudox/Cubox                          404
-/api/v1/repos/Cloudox/Cubox/releases                 404
-/Cloudox/Cubox                                       404
-/Cloudox/Cubox/releases/download/v1.2/…SHA256.txt    404
+Cubox-<version>-windows-x64.zip     Installer.exe + Cubox.exe + Java
+Cubox-<version>-linux-x64.tar.gz    install.sh + Cubox.sh + Java
+cubox-<version>-any.pkg.tar.zst     paquet pacman, signé
+Cubox-<version>-SHA256.txt          sommes de contrôle
+cubox.db, cubox.files, *.sig        dépôt pacman signé
+cubox-signing-key.asc               clé publique de signature
 ```
 
-Un visiteur ne peut donc **rien** télécharger depuis la forge. C'est pour ça
-que `packaging/publish-github.sh` existait déjà, et pourquoi la CI le
-systématise :
-
-- **la forge** est la source de vérité (code, releases, historique) ;
-- **`github.com/yapixgs/Cubox-publique`** est le canal de distribution ;
-- **cubox.yabox.wasabout.net** lit les releases GitHub et pointe dessus.
-
-L'étape 7 fait un `curl` **sans aucun jeton**, exprès : c'est ce que verra un
-visiteur. Vérifier avec un jeton ne prouverait rien — c'est précisément
-l'erreur qui aurait laissé croire que la forge suffisait.
-
----
+Tout est publié sur le dépôt public, d'où le site et `pacman` les récupèrent.
 
 ## Secrets nécessaires
 
-| Secret | Où | Sans lui |
-|---|---|---|
-| `GH_MIRROR_TOKEN` | Dépôt `Cloudox/Cubox` → Actions → Secrets | La publication **échoue** à l'étape 6, plutôt que de sortir une version invisible |
-| `FORGEJO_REGISTRY_USER` / `_TOKEN` | Organisation Cloudox | `images.yml` ne peut pas publier l'image du site |
-| `CURSEFORGE_API_KEY` | Dépôt (facultatif) | Seul le navigateur CurseForge est désactivé |
+| Secret | Sans lui |
+|---|---|
+| `GH_MIRROR_TOKEN` | la publication échoue — plutôt que de sortir une version invisible |
+| `ARCH_SIGNING_KEY` | le dépôt pacman n'est pas publié (un dépôt non signé serait pire que rien) |
+| `CURSEFORGE_API_KEY` | seul le navigateur CurseForge est désactivé |
 
-> ⚠️ Le nom d'un secret **ne peut pas commencer par `GITHUB_`** : la forge
-> réserve ce préfixe.
-> ```
-> PUT …/actions/secrets/GITHUB_MIRROR_TOKEN -> 400 « invalid secret name »
-> PUT …/actions/secrets/GH_MIRROR_TOKEN     -> 201
-> ```
-
----
+La clé de signature doit être **sans phrase de passe** : une chaîne de
+publication automatique ne peut pas en saisir une, et stocker le mot de passe
+à côté de la clé ne protégerait plus rien.
 
 ## Rejouer une publication
 
-Le workflow est **idempotent** : il réutilise la release existante, remplace
-les assets homonymes et met le miroir à jour. On peut donc le relancer à la
-main sans supprimer quoi que ce soit :
+La publication est idempotente : elle réutilise la version existante, remplace
+les fichiers de même nom et met le dépôt public à jour. On peut la relancer
+sans rien supprimer au préalable.
 
-*Actions → Release — paquets et miroir public → Run workflow*, avec le tag.
+## Deux pièges à connaître
 
----
+**Le numéro de version.** `HMCL/build.gradle.kts` dérive le numéro de la
+variable `GITHUB_SHA` si elle est définie :
 
-## Si ça casse
+```kotlin
+version = if (shortCommit.isNullOrBlank()) versionRoot
+          else "$versionRoot.unofficial-$shortCommit"
+```
 
-**Les journaux du runner ne sont pas lisibles par l'API de la forge** (aucun
-endpoint de logs dans cette version, et les routes web répondent 404 à un
-jeton d'API). Le job `site` de `ci.yml` contourne le problème en publiant son
-diagnostic **en commentaire de la PR**. Si vous ajoutez un job susceptible
-d'échouer de façon opaque, reprenez ce motif : un diagnostic qu'on ne peut pas
-lire ne sert à personne.
+Tout environnement d'intégration continue l'exporte. Chaque build de
+publication la retire donc explicitement (`env -u GITHUB_SHA`) — on la retire
+plutôt que de la vider, car `"".substring(0, 7)` lève une exception. C'est ce
+numéro-là qui s'affiche dans la fenêtre du launcher.
 
-### Pièges connus du runner
+**Le nom du paquet pacman.** L'*epoch* introduit un `:` dans le nom du fichier,
+caractère interdit par la plateforme d'hébergement, qui le remplace
+silencieusement par un `.`. Or `pacman` télécharge le nom inscrit dans sa base :
+les deux divergeraient. Le nom est donc assaini **avant** de construire la base.
 
-- **`actions/checkout` ne fonctionne pas dans un job avec `container:` — sur ce
-  dépôt.** Établi par bissection (13 jobs sonde, 26/09/2026) : sans conteneur
-  il passe ; avec conteneur il échoue sur `debian`, `eclipse-temurin` **et**
-  `docker:24-cli` ; un `git clone` manuel dans le même conteneur passe. Tous
-  les workflows clonent donc à la main.
+## Mettre à jour le site
 
-  ⚠️ **Ne pas généraliser.** `Cloudox/Helipix` utilise exactement la même
-  combinaison (`container: docker:24-cli` + `actions/checkout@v4`) et ses
-  exécutions **réussissent** (vérifié : `images.yml`, succès le 22/09/2026).
-  La cause est donc propre à ce dépôt — sa taille et son historique sont sans
-  commune mesure — et **je ne l'ai pas établie**. Ce qui est établi, c'est que
-  le clone manuel fonctionne ici de façon reproductible.
-
-  Par prudence, `upload-artifact` / `download-artifact` sont évitées aussi
-  (mêmes actions JS, risque non mesuré).
-
-- **`env -u GITHUB_SHA` avant `make-release.sh`.** `HMCL/build.gradle.kts`
-  dérive la version de `GITHUB_SHA`, que Forgejo exporte :
-  ```kotlin
-  val shortCommit = System.getenv("GITHUB_SHA")?.lowercase()?.substring(0, 7)
-  version = if (shortCommit.isNullOrBlank()) versionRoot
-            else "$versionRoot.unofficial-$shortCommit"
-  ```
-  Sans ce retrait, le launcher **affiche** `1.3.unofficial-a1b2c3d`, alors que
-  les archives portent le bon nom. On retire la variable plutôt que de la
-  vider : `"".substring(0, 7)` lève une exception.
-
-- **Le job `paquet-arch` est en `continue-on-error`.** `makepkg` refuse de
-  tourner en root, d'où l'utilisateur dédié dans le conteneur. Si ce job
-  échoue, Windows et Linux sont déjà publiés — mais l'échec reste rouge, et
-  les utilisateurs Arch doivent alors passer par l'archive générique.
+Le site est déployé séparément et épingle une image précise. **Publier une
+version ne le met pas à jour** : il faut y reporter la nouvelle image, sinon la
+page servie reste celle d'avant — sans que rien ne soit signalé comme en
+erreur.
