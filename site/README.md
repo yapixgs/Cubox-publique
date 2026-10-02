@@ -5,24 +5,59 @@ de la dernière version, et le script d'installation Arch.
 
 ```
 site/
-├── Dockerfile              image OCI (nginx non privilégié)
-├── nginx-main.conf         configuration principale
-├── default.conf.template   serveur, relais /api/releases, redirection /arch/
-└── html/
-    ├── index.html          page publique
-    ├── style.css           design system
-    ├── app.js              remplit la section « Télécharger »
-    └── admin/              espace réservé (statistiques)
+├── Dockerfile                image OCI : build Node du site, puis nginx non privilégié
+├── Dockerfile.dockerignore   contexte limité aux fichiers copiés
+├── nginx-main.conf           configuration principale
+├── default.conf.template     serveur, relais /api/releases, redirection /arch/
+├── securite.conf             en-têtes de sécurité et CSP (empreinte de l'import map posée au build)
+├── web/                      page publique — Svelte 5 sur le socle Cloudox
+│   ├── src/App.svelte        barre du haut (logo Cubox), page, pied de page
+│   ├── src/pages/HomePage.svelte
+│   ├── src/lib/releases.js   lecture de /api/releases (plateformes, tailles, SHA256)
+│   ├── src/lib/Downloads.svelte, src/lib/TopBar.svelte
+│   └── tests/                unitaires (vitest) et e2e (Playwright, bureau + mobile)
+└── html/admin/               statistiques de téléchargement (ancienne page statique,
+                              protégée par la passerelle) — gardée tant que le hub
+                              Cloudox ne l'a pas reprise
 ```
 
-## Essayer en local
+La page publique n'a **aucune connexion** : pas de `Guard` ni de `Shell` du
+socle (le `Shell` charge l'utilisateur via `/oauth2/userinfo`, qui n'existe pas
+ici). Elle garde **son propre logo**, `HMCL/image/cubox.png`, et utilise les
+blocs et variables `--cx-*` du socle.
+
+En production, Svelte et `@cloudox/socle` ne sont pas embarqués : l'import map
+produite par `cloudoxApp()` les charge depuis `/_socle/v1/`, que l'ingress route
+vers le socle avant nginx. La CSP autorise ce seul script inline par son
+empreinte, calculée au build.
+
+## Développer et tester `web/`
+
+`@cloudox/socle` vient du registre npm privé de la forge (`web/.npmrc`) :
+
+```bash
+cd site/web
+CLOUDOX_NPM_TOKEN=<jeton read:package> npm ci
+npm run dev        # http://127.0.0.1:5181, /api/releases relayé vers l'API GitHub
+npm run check      # svelte-check
+npm test           # vitest
+npm run build      # dist/
+npx playwright test   # e2e bureau + mobile, /api/releases simulé
+```
+
+En dev, `vite.config.js` sert aussi `/cubox.png` et `/install-arch.sh` depuis
+le dépôt, comme l'image.
+
+## Construire l'image
 
 Le contexte de build est la **racine du dépôt**, pas `site/` : le `Dockerfile`
 reprend le logo déjà versionné dans `HMCL/image/` plutôt que d'en dupliquer une
-copie qui divergerait.
+copie qui divergerait. BuildKit est requis : le jeton npm est un secret monté
+le temps du seul `npm ci`, il n'entre dans aucune couche.
 
 ```bash
-docker build --file site/Dockerfile --tag cubox-site .
+CLOUDOX_NPM_TOKEN=<jeton> docker build --file site/Dockerfile \
+  --secret id=npm_token,env=CLOUDOX_NPM_TOKEN --tag cubox-site .
 docker run --rm -p 8080:8080 cubox-site
 ```
 

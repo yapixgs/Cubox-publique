@@ -45,14 +45,9 @@ server {
     access_log off;
 
     # ── En-têtes de sécurité ────────────────────────────────────────────────
-    add_header X-Frame-Options        "SAMEORIGIN"                        always;
-    add_header X-Content-Type-Options "nosniff"                           always;
-    add_header Referrer-Policy        "strict-origin-when-cross-origin"   always;
-    add_header Permissions-Policy     "camera=(), microphone=(), geolocation=()" always;
-    # `connect-src 'self'` suffit : grâce au relais ci-dessous, la page
-    # n'appelle jamais d'origine externe. Pas de script inline non plus.
-    add_header Content-Security-Policy
-        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'" always;
+    # Dans un fichier à part (site/securite.conf) : chaque location qui pose
+    # son propre `add_header` doit les reprendre, sinon nginx les abandonne.
+    include /etc/nginx/securite.conf;
 
     # ── Relais vers la forge ────────────────────────────────────────────────
     location = /api/releases {
@@ -93,12 +88,25 @@ server {
         add_header X-Cache-Status $upstream_cache_status always;
 
         add_header Cache-Control "public, max-age=300" always;
+        include /etc/nginx/securite.conf;
     }
 
     # ── Fichiers statiques ──────────────────────────────────────────────────
-    # Pas de hash dans les noms (site à trois fichiers, pas de bundler) : on
-    # met donc un cache court plutôt qu'immuable, sinon une correction de
-    # texte mettrait un an à arriver chez les visiteurs.
+    # Le site est construit par Vite : tout ce qui est sous /assets/ porte un
+    # hash dans son nom, donc cache immuable. `^~` pour qu'aucune location
+    # regex ne passe devant.
+    location ^~ /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        include /etc/nginx/securite.conf;
+        try_files $uri =404;
+    }
+
+    location = /cubox.png {
+        add_header Cache-Control "public, max-age=3600" always;
+        include /etc/nginx/securite.conf;
+        try_files $uri =404;
+    }
+
     # Le script d'installation : cache court, et surtout le bon type MIME —
     # servi en application/octet-stream, un navigateur proposerait de
     # l'enregistrer au lieu de l'afficher, alors qu'on veut que les gens le
@@ -107,11 +115,7 @@ server {
         default_type text/plain;
         add_header Cache-Control "public, max-age=300" always;
         add_header Content-Disposition "inline" always;
-        try_files $uri =404;
-    }
-
-    location ~* \.(css|js|png|svg|ico)$ {
-        add_header Cache-Control "public, max-age=3600" always;
+        include /etc/nginx/securite.conf;
         try_files $uri =404;
     }
 
@@ -140,7 +144,14 @@ server {
         return 200 "ok\n";
     }
 
+    # /_socle/ (runtime Svelte et blocs du socle Cloudox, chargés par l'import
+    # map) n'arrive jamais ici : l'ingress le route vers le socle avant nginx.
+    #
+    # index.html référence les assets hachés : toujours revalidé, sinon une
+    # nouvelle version pointerait vers d'anciens fichiers.
     location / {
+        add_header Cache-Control "no-cache" always;
+        include /etc/nginx/securite.conf;
         try_files $uri $uri/ =404;
     }
 }

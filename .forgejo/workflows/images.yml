@@ -124,6 +124,13 @@ jobs:
         env:
           PRIMARY: ${{ steps.tags.outputs.PRIMARY }}
           EXTRA: ${{ steps.tags.outputs.EXTRA }}
+          # Le site Svelte dépend de @cloudox/socle, publié dans le registre
+          # npm privé de la forge. Passé en secret BuildKit : il n'apparaît
+          # dans aucune couche de l'image ni dans son historique.
+          CLOUDOX_NPM_TOKEN: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}
+          # BuildKit est requis : `--secret`, `RUN --mount=type=secret` et
+          # site/Dockerfile.dockerignore n'existent pas avec l'ancien builder.
+          DOCKER_BUILDKIT: "1"
         run: |
           set -eu
           docker pull "$IMG:main" 2>/dev/null || true
@@ -136,6 +143,7 @@ jobs:
           docker build \
             --pull \
             --file site/Dockerfile \
+            --secret id=npm_token,env=CLOUDOX_NPM_TOKEN \
             $TAGS \
             --cache-from "$IMG:main" \
             --label "org.opencontainers.image.source=https://forge.oxitablock.com/Cloudox/Cubox" \
@@ -176,6 +184,15 @@ jobs:
                 echo "ECHEC: variables CUBOX_* non substituées"
                 ok=0
               fi
+              # L'import map du site est le seul script inline : sans son
+              # empreinte dans la CSP, le navigateur la refuse et la page reste
+              # blanche — alors que tout le reste du test passerait.
+              docker exec "$NOM" grep -q "script-src 'self' 'sha256-" /etc/nginx/securite.conf \
+                || { echo "ECHEC: empreinte de l'import map absente de la CSP"; ok=0; }
+              # Les statistiques restent servies tant que le hub Cloudox ne
+              # les a pas reprises.
+              docker exec "$NOM" wget -qO- http://127.0.0.1:8080/admin/ | grep -q 'Téléchargements' \
+                || { echo "ECHEC: /admin/ ne répond plus"; ok=0; }
               # Le namespace applique `restricted` : un pod root serait refusé
               # à l'admission. Autant le voir ici plutôt que dans Argo.
               uid="$(docker exec "$NOM" id -u)"

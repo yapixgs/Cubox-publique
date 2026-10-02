@@ -3,11 +3,36 @@
 # Contexte de build = RACINE du dépôt (pas site/), pour reprendre le logo déjà
 # versionné dans HMCL/image/ au lieu d'en dupliquer une copie :
 #
-#     docker build --file site/Dockerfile .
+#     docker build --file site/Dockerfile --secret id=npm_token,env=CLOUDOX_NPM_TOKEN .
 #
+# Exige BuildKit (secret monté, et site/Dockerfile.dockerignore qui limite le
+# contexte aux fichiers réellement copiés).
+
+# ── Étape 1 : le site Svelte (site/web) ──────────────────────────────────────
+# Même image épinglée que le socle Cloudox.
+FROM docker.io/library/node:22.23.0-bookworm-slim@sha256:d9f850096136edbc402debdd8729579a288aac64574ada0ff4db26b6ae58b0b2 AS web
+WORKDIR /web
+COPY site/web/package.json site/web/package-lock.json site/web/.npmrc ./
+# @cloudox/socle vient du registre npm privé de la forge. Le jeton est un
+# secret BuildKit : lu dans CETTE commande seulement, il n'atterrit dans aucune
+# couche (.npmrc ne contient que la référence ${CLOUDOX_NPM_TOKEN}).
+RUN --mount=type=secret,id=npm_token,required=true \
+    CLOUDOX_NPM_TOKEN="$(cat /run/secrets/npm_token)" npm ci --no-audit --no-fund
+COPY site/web/index.html site/web/vite.config.js site/web/jsconfig.json ./
+COPY site/web/src ./src
+RUN npm run build
+# L'import map est le seul script inline : son empreinte entre dans la CSP.
+COPY site/securite.conf /tmp/securite.conf
+RUN set -eu; \
+    hash="$(cat dist/importmap.sha256)"; \
+    case "$hash" in "'sha256-"*"'") ;; *) echo "empreinte d'import map illisible : $hash" >&2; exit 1 ;; esac; \
+    sed "s|@IMPORTMAP_SHA256@|$hash|" /tmp/securite.conf > /web/securite.conf; \
+    if grep -q '@IMPORTMAP_SHA256@' /web/securite.conf; then exit 1; fi; \
+    rm dist/importmap.sha256
+
+# ── Étape 2 : nginx non privilégié ───────────────────────────────────────────
 # Image de base officielle amont, conformément à la règle 4 de
 # Cloudox/infra/AGENTS.md (« logiciel tiers : image officielle, aucun miroir »).
-# Même version que le frontend d'Helipix : un seul nginx à suivre.
 FROM docker.io/library/nginx:1.27-alpine
 
 # Le namespace applique `pod-security.kubernetes.io/enforce: restricted` :
@@ -32,7 +57,12 @@ ENV NGINX_ENVSUBST_FILTER="CUBOX_"
 
 COPY site/nginx-main.conf         /etc/nginx/nginx.conf
 COPY site/default.conf.template   /etc/nginx/templates/default.conf.template
-COPY site/html/                   /usr/share/nginx/html/
+COPY --from=web /web/securite.conf /etc/nginx/securite.conf
+COPY --from=web /web/dist/        /usr/share/nginx/html/
+# Statistiques de téléchargement (/admin/, protégé en amont par la passerelle) :
+# l'ancienne page statique, avec sa feuille de style, gardée telle quelle tant
+# que son remplaçant dans le hub Cloudox n'est pas vérifié.
+COPY site/html/admin/             /usr/share/nginx/html/admin/
 COPY HMCL/image/cubox.png         /usr/share/nginx/html/cubox.png
 # Le script d'installation Arch est servi par le site : c'est l'adresse qu'on
 # donne aux gens, elle doit être stable et indépendante de la dernière release.
