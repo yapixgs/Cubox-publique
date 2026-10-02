@@ -189,10 +189,6 @@ jobs:
               # blanche — alors que tout le reste du test passerait.
               docker exec "$NOM" grep -q "script-src 'self' 'sha256-" /etc/nginx/securite.conf \
                 || { echo "ECHEC: empreinte de l'import map absente de la CSP"; ok=0; }
-              # Les statistiques restent servies tant que le hub Cloudox ne
-              # les a pas reprises.
-              docker exec "$NOM" wget -qO- http://127.0.0.1:8080/admin/ | grep -q 'Téléchargements' \
-                || { echo "ECHEC: /admin/ ne répond plus"; ok=0; }
               # Le namespace applique `restricted` : un pod root serait refusé
               # à l'admission. Autant le voir ici plutôt que dans Argo.
               uid="$(docker exec "$NOM" id -u)"

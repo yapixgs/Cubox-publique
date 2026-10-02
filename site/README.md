@@ -16,9 +16,9 @@ site/
 │   ├── src/lib/releases.js   lecture de /api/releases (plateformes, tailles, SHA256)
 │   ├── src/lib/Downloads.svelte, src/lib/TopBar.svelte
 │   └── tests/                unitaires (vitest) et e2e (Playwright, bureau + mobile)
-└── html/admin/               statistiques de téléchargement (ancienne page statique,
-                              protégée par la passerelle) — gardée tant que le hub
-                              Cloudox ne l'a pas reprise
+
+Les statistiques de téléchargement sont dans le portail Cloudox
+(https://cloudox.yabox.wasabout.net, onglet Cubox).
 ```
 
 La page publique n'a **aucune connexion** : pas de `Guard` ni de `Shell` du

@@ -59,10 +59,6 @@ COPY site/nginx-main.conf         /etc/nginx/nginx.conf
 COPY site/default.conf.template   /etc/nginx/templates/default.conf.template
 COPY --from=web /web/securite.conf /etc/nginx/securite.conf
 COPY --from=web /web/dist/        /usr/share/nginx/html/
-# Statistiques de téléchargement (/admin/, protégé en amont par la passerelle) :
-# l'ancienne page statique, avec sa feuille de style, gardée telle quelle tant
-# que son remplaçant dans le hub Cloudox n'est pas vérifié.
-COPY site/html/admin/             /usr/share/nginx/html/admin/
 COPY HMCL/image/cubox.png         /usr/share/nginx/html/cubox.png
 # Le script d'installation Arch est servi par le site : c'est l'adresse qu'on
 # donne aux gens, elle doit être stable et indépendante de la dernière release.

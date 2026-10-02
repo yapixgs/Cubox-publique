@@ -198,8 +198,6 @@ jobs:
               # blanche — alors que tout le reste du test passerait.
               docker exec "$NOM" grep -q "script-src 'self' 'sha256-" /etc/nginx/securite.conf \
                 || { echo "ECHEC: empreinte de l'import map absente de la CSP"; ok=0; }
-              docker exec "$NOM" wget -qO- http://127.0.0.1:8080/admin/ | grep -q 'Téléchargements' \
-                || { echo "ECHEC: /admin/ ne répond plus"; ok=0; }
               uid="$(docker exec "$NOM" id -u)"
               [ "$uid" = "10001" ] || { echo "ECHEC: UID $uid au lieu de 10001"; ok=0; }
             else
