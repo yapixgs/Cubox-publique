@@ -54,7 +54,15 @@ server {
         # `per_page=5` : la page n'affiche que la dernière version publiée,
         # mais elle doit pouvoir ignorer un brouillon ou une préversion en
         # tête de liste sans repartir en aller-retour.
-        proxy_pass ${CUBOX_RELEASES_BASE}/repos/${CUBOX_RELEASES_REPO}/releases?per_page=5;
+        # Résolution DYNAMIQUE (2026-10-03) : sans `resolver`, nginx résout
+        # api.github.com une seule fois au démarrage et garde cette adresse.
+        # Ce jour-là, l'adresse obtenue (140.82.121.6) était injoignable depuis
+        # le VPS alors qu'une autre (140.82.114.6) répondait : la page affichait
+        # « versions indisponibles » jusqu'au redémarrage du pod. Avec une
+        # variable, nginx re-résout toutes les 60 s.
+        resolver ${NGINX_LOCAL_RESOLVERS} valid=60s ipv6=off;
+        set $releases_base ${CUBOX_RELEASES_BASE};
+        proxy_pass $releases_base/repos/${CUBOX_RELEASES_REPO}/releases?per_page=5;
 
         proxy_ssl_server_name on;
         proxy_ssl_name        ${CUBOX_RELEASES_HOST};

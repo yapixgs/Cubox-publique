@@ -53,7 +53,11 @@ ENV CUBOX_RELEASES_BASE="https://api.github.com" \
 # vides. La configuration serait alors invalide, ou pire : valide et fausse.
 # (Le commentaire est volontairement HORS du ENV multi-ligne : selon la version
 # du parseur, un `#` au milieu d'une continuation n'est pas toujours retiré.)
-ENV NGINX_ENVSUBST_FILTER="CUBOX_"
+# NGINX_LOCAL_RESOLVERS : le serveur DNS du pod, posé par l'entrypoint
+# (15-local-resolvers.envsh) quand NGINX_ENTRYPOINT_LOCAL_RESOLVERS est défini ;
+# il sert au `resolver` du relais GitHub (résolution dynamique, voir le template).
+ENV NGINX_ENVSUBST_FILTER="CUBOX_|NGINX_LOCAL_RESOLVERS" \
+    NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
 
 COPY site/nginx-main.conf         /etc/nginx/nginx.conf
 COPY site/default.conf.template   /etc/nginx/templates/default.conf.template
