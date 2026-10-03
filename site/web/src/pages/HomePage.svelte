@@ -3,14 +3,15 @@
   import { Badge, Panel, Prompt, Spinner } from '@cloudox/socle'
   import { onMount } from 'svelte'
   import Downloads from '../lib/Downloads.svelte'
-  import { MIRROR, PACMAN_DOC, RELEASES_URL, fetchLatest } from '../lib/releases.js'
+  import { MIRROR, PACMAN_DOC, RELEASES_URL, fetchReleases } from '../lib/releases.js'
 
-  /** @type {{ state: 'loading' } | { state: 'ok', release: Awaited<ReturnType<typeof fetchLatest>> } | { state: 'error', message: string }} */
+  /** @type {{ state: 'loading' } | { state: 'ok', release: Awaited<ReturnType<typeof fetchReleases>>['latest'], history: Awaited<ReturnType<typeof fetchReleases>>['history'] } | { state: 'error', message: string }} */
   let releases = $state({ state: 'loading' })
 
   onMount(async () => {
     try {
-      releases = { state: 'ok', release: await fetchLatest() }
+      const found = await fetchReleases()
+      releases = { state: 'ok', release: found.latest, history: found.history }
     } catch (error) {
       console.warn('liste des versions indisponible', error)
       releases = { state: 'error', message: error instanceof Error ? error.message : String(error) }
@@ -89,6 +90,32 @@
   </div>
 </section>
 
+<section id="nouveautes" aria-labelledby="titre-nouveautes">
+  <h2 id="titre-nouveautes"><span>#</span> Nouveautés</h2>
+  {#if releases.state === 'loading'}
+    <p class="muted"><Spinner label="Chargement des notes de version" /> Chargement des notes de version…</p>
+  {:else if releases.state === 'ok' && releases.history.length}
+    {#each releases.history as entry, index (entry.version)}
+      <details class="release" open={index === 0}>
+        <summary><b>{entry.version}</b>{entry.date ? ` — ${entry.date}` : ''}</summary>
+        {#if entry.notes.length}
+          <div class="notes">
+            {#each entry.notes as block, at (at)}
+              {#if block.kind === 'title'}<h3>{block.text}</h3>
+              {:else if block.kind === 'item'}<p class="item">{block.text}</p>
+              {:else}<p>{block.text}</p>{/if}
+            {/each}
+          </div>
+        {:else}
+          <p class="muted">Pas de note publiée pour cette version.</p>
+        {/if}
+      </details>
+    {/each}
+  {:else}
+    <p class="muted">Notes de version indisponibles ici : elles restent sur <a href="{MIRROR}/blob/main/CHANGELOG.md" rel="noopener">le journal des versions</a>.</p>
+  {/if}
+</section>
+
 <section id="fonctions" aria-labelledby="titre-fonctions">
   <h2 id="titre-fonctions"><span>#</span> Ce que fait Cubox</h2>
   <div class="grid">
@@ -151,4 +178,10 @@
   .note.err b { color: var(--cx-err); }
   .note.warn { border-left-color: var(--cx-warn); }
   .note.warn > b { color: var(--cx-warn); }
+  .release { border: 1px solid var(--cx-line); border-radius: var(--cx-radius-sm); background: var(--cx-panel); padding: 10px 14px; }
+  .release summary { cursor: pointer; color: var(--cx-fg-strong); }
+  .notes { display: grid; gap: 4px; margin-top: 8px; max-width: 72ch; }
+  .notes h3 { font-size: 15px; margin: 8px 0 2px; color: var(--cx-fg-strong); }
+  .notes .item { padding-left: 1.2em; text-indent: -1.2em; }
+  .notes .item::before { content: '- '; color: var(--cx-accent); }
 </style>

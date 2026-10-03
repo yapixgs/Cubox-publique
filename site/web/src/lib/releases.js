@@ -15,7 +15,7 @@ export const PACMAN_DOC = `${MIRROR}/blob/main/docs/DEPOT-PACMAN.md`
 
 /**
  * @typedef {{ name?: string, size?: number, browser_download_url: string }} Asset
- * @typedef {{ tag_name?: string, name?: string, published_at?: string, draft?: boolean, prerelease?: boolean, assets?: Asset[] }} Release
+ * @typedef {{ tag_name?: string, name?: string, body?: string, published_at?: string, draft?: boolean, prerelease?: boolean, assets?: Asset[] }} Release
  * @typedef {{ key: string, name: string, tag: string, detail: string, hint: string, pacman?: boolean, match: (name: string) => boolean }} Platform
  */
 
@@ -84,4 +84,41 @@ export async function fetchLatest() {
   const response = await fetch('/api/releases', { headers: { Accept: 'application/json' } })
   if (!response.ok) throw new Error(`le miroir a répondu ${response.status}`)
   return describe(latest(await response.json()))
+}
+
+/**
+ * The release notes as plain blocks, never as HTML: the body comes from GitHub and
+ * is shown as text (headings, list items, paragraphs). Markdown links keep their
+ * label, emphasis marks are dropped.
+ * @param {string | undefined} body
+ * @returns {{ kind: 'title' | 'item' | 'text', text: string }[]}
+ */
+export function notesOf(body) {
+  const clean = (/** @type {string} */ line) =>
+    line.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/[*_`]+/g, '').trim()
+  /** @type {{ kind: 'title' | 'item' | 'text', text: string }[]} */
+  const blocks = []
+  for (const raw of (body ?? '').split(/\r?\n/)) {
+    const line = raw.trim()
+    if (!line || /^<!--/.test(line)) continue
+    if (/^#{1,6}\s/.test(line)) blocks.push({ kind: 'title', text: clean(line.replace(/^#+\s*/, '')) })
+    else if (/^[-*+]\s/.test(line)) blocks.push({ kind: 'item', text: clean(line.slice(2)) })
+    else blocks.push({ kind: 'text', text: clean(line) })
+  }
+  return blocks.filter((block) => block.text)
+}
+
+/**
+ * The latest release to download, and the notes of the last `count` published ones.
+ * @param {number} [count]
+ */
+export async function fetchReleases(count = 3) {
+  const response = await fetch('/api/releases', { headers: { Accept: 'application/json' } })
+  if (!response.ok) throw new Error(`le miroir a répondu ${response.status}`)
+  const data = await response.json()
+  const list = (Array.isArray(data) ? data : [data]).filter((r) => r && !r.draft && !r.prerelease)
+  return {
+    latest: describe(latest(data)),
+    history: list.slice(0, count).map((release) => ({ ...describe(release), notes: notesOf(/** @type {any} */ (release).body) })),
+  }
 }

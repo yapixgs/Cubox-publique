@@ -86,3 +86,13 @@ test('desktop: the three cards side by side', async ({ page, isMobile }) => {
   const boxes = await Promise.all(['windows', 'linux', 'arch'].map((key) => page.locator(`[data-platform="${key}"]`).boundingBox()))
   expect(boxes[0]?.y).toBe(boxes[2]?.y)
 })
+
+test('the release notes of the latest version are shown as text, never as HTML', async ({ page }) => {
+  await fakeReleases(page)
+  await page.goto('/')
+  const notes = page.locator('#nouveautes')
+  await expect(notes.getByRole('heading', { name: 'Nouveautés', level: 3 })).toBeVisible()
+  await expect(notes).toContainText('Modrinth : navigateur intégré')
+  await expect(notes).toContainText('<script>alert(1)</script>')
+  await expect(notes.locator('script')).toHaveCount(0)
+})

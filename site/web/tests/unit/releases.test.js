@@ -1,5 +1,5 @@
 import { describe as group, expect, test } from 'vitest'
-import { describe, latest, size } from '../../src/lib/releases.js'
+import { describe, latest, size, notesOf } from '../../src/lib/releases.js'
 
 /** @param {string} name */
 const asset = (name, bytes = 1) => ({ name, size: bytes, browser_download_url: `https://example.org/${name}` })
@@ -45,4 +45,17 @@ test('sizes in Mo with one decimal, Ko below', () => {
   expect(size(2048)).toBe('2 Ko')
   expect(size(undefined)).toBe('')
   expect(size(0)).toBe('')
+})
+
+group('notesOf', () => {
+  test('turns markdown into plain blocks, links keep their label', () => {
+    expect(notesOf('## Titre\n- **Gras** et [lien](https://x)\n\nTexte _ici_\n<!-- caché -->')).toEqual([
+      { kind: 'title', text: 'Titre' },
+      { kind: 'item', text: 'Gras et lien' },
+      { kind: 'text', text: 'Texte ici' },
+    ])
+  })
+  test('an empty body gives no block', () => {
+    expect(notesOf(undefined)).toEqual([])
+  })
 })
