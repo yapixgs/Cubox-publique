@@ -25,19 +25,19 @@ export const PACMAN_DOC = `${MIRROR}/blob/main/docs/DEPOT-PACMAN.md`
  */
 export const PLATFORMS = [
   {
-    key: 'windows', name: 'Windows', tag: 'win', detail: 'x86-64 · Java inclus',
+    key: 'windows', name: 'Windows', tag: 'ZIP', detail: 'x86-64 · Java inclus',
     hint: 'Décompresse, puis lance Installer.exe.',
     match: (name) => name.endsWith('-windows-x64.zip'),
   },
   {
-    key: 'linux', name: 'Linux', tag: 'linux', detail: 'x86-64 · Java inclus',
+    key: 'linux', name: 'Linux', tag: 'TAR.GZ', detail: 'x86-64 · Java inclus',
     hint: 'Décompresse, puis lance ./install.sh.',
     match: (name) => name.endsWith('-linux-x64.tar.gz'),
   },
   {
     // The pacman repository is the real answer for Arch users: without it `yay -Syu`
     // does NOT update Cubox (the package is on the AUR under no name) and it stays frozen.
-    key: 'arch', name: 'Arch Linux', tag: 'arch', detail: 'paquet pacman',
+    key: 'arch', name: 'Arch Linux', tag: 'Pacman', detail: 'Paquet pacman',
     hint: 'sudo pacman -U cubox-*.pkg.tar.zst', pacman: true,
     match: (name) => name.endsWith('.pkg.tar.zst'),
   },

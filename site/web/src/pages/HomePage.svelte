@@ -31,10 +31,10 @@
   const FINGERPRINT = '6D5D EECF CD53 3845 32D6  1D66 7FC7 6ECD BCCF 57F2'
 
   const FEATURES = [
-    { tag: 'mods', title: 'Mods et modpacks', text: 'Forge, Fabric, Quilt, NeoForge et OptiFine depuis le launcher. Import Modrinth, CurseForge et MultiMC, navigateur Modrinth intégré.' },
-    { tag: 'offline', title: 'Aucun compte', text: "Mode hors-ligne par défaut : un pseudo, rien d'autre. L'auto-update est désactivée — Cubox ne téléphone à personne." },
-    { tag: 'skins', title: 'Skins persos', text: 'Via authlib-injector (Ely.by par exemple), toujours sans compte Microsoft. Entièrement optionnel.' },
-    { tag: 'os', title: 'Windows, Linux, Arch', text: 'Le même build produit le .exe, le .sh et un paquet pacman. Interface en français.' },
+    { tag: 'Mods', title: 'Mods et modpacks', text: 'Forge, Fabric, Quilt, NeoForge et OptiFine depuis le launcher. Import Modrinth, CurseForge et MultiMC, navigateur Modrinth intégré.' },
+    { tag: 'Hors ligne', title: 'Aucun compte', text: "Mode hors-ligne par défaut : un pseudo, rien d'autre. L'auto-update est désactivée — Cubox ne téléphone à personne." },
+    { tag: 'Skins', title: 'Skins persos', text: 'Via authlib-injector (Ely.by par exemple), toujours sans compte Microsoft. Entièrement optionnel.' },
+    { tag: 'Systèmes', title: 'Windows, Linux, Arch', text: 'Le même build produit le .exe, le .sh et un paquet pacman. Interface en français.' },
   ]
 
   const STEPS = [

@@ -18,7 +18,7 @@ test('three download cards point at the assets of the mirror, with their sizes',
   await expect(downloads.nth(2)).toHaveAttribute('href', `${BASE}/cubox-1.3.3-1-x86_64.pkg.tar.zst`)
   await expect(page.locator('[data-platform="windows"]')).toContainText('x86-64 · Java inclus · 152.0 Mo')
   await expect(page.locator('[data-platform="linux"]')).toContainText('148.0 Mo')
-  await expect(page.locator('[data-platform="arch"]')).toContainText('paquet pacman · 96.0 Mo')
+  await expect(page.locator('[data-platform="arch"]')).toContainText('Paquet pacman · 96.0 Mo')
   await expect(page.locator('[data-platform="arch"]').getByRole('link', { name: /Dépôt pacman/ })).toHaveAttribute(
     'href', 'https://github.com/yapixgs/Cubox-publique/blob/main/docs/DEPOT-PACMAN.md',
   )
