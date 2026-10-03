@@ -11,7 +11,6 @@ export const RELEASES = [
   { tag_name: 'v1.4.0-rc1', prerelease: true, assets: [asset('Cubox-1.4.0-rc1-windows-x64.zip', 1)] },
   {
     tag_name: 'v1.3.3',
-    body: '## Nouveautés\n- **Modrinth** : [navigateur](https://x) intégré\n<script>alert(1)</script>',
     published_at: '2026-09-30T10:00:00Z',
     assets: [
       asset('Cubox-1.3.3-windows-x64.zip', 152 * 1024 * 1024),

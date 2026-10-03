@@ -20,6 +20,8 @@ RUN --mount=type=secret,id=npm_token,required=true \
     CLOUDOX_NPM_TOKEN="$(cat /run/secrets/npm_token)" npm ci --no-audit --no-fund
 COPY site/web/index.html site/web/vite.config.js site/web/jsconfig.json ./
 COPY site/web/src ./src
+# Les notes de version de la page viennent du CHANGELOG du dépôt (vite.config.js).
+COPY CHANGELOG.md /CHANGELOG.md
 RUN npm run build
 # L'import map est le seul script inline : son empreinte entre dans la CSP.
 COPY site/securite.conf /tmp/securite.conf

@@ -7,6 +7,7 @@
 !site/web/vite.config.js
 !site/web/jsconfig.json
 !site/web/src/
+!CHANGELOG.md
 !site/html/admin/
 !site/nginx-main.conf
 !site/default.conf.template

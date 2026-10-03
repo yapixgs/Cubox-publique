@@ -34,7 +34,13 @@ function repoFiles() {
 // Same public mirror as the nginx relay in production (site/default.conf.template).
 const RELEASES_REPO = process.env.CUBOX_RELEASES_REPO ?? 'yapixgs/Cubox-publique'
 
+// The release notes come from the repository's own CHANGELOG.md (the source of
+// truth, written with each release), embedded at build time: the GitHub release
+// bodies only said « Publié automatiquement… ». site/Dockerfile copies it to /.
+const CHANGELOG = readFileSync(fileURLToPath(new URL('CHANGELOG.md', REPO)), 'utf8')
+
 export default defineConfig({
+  define: { __CUBOX_CHANGELOG__: JSON.stringify(CHANGELOG) },
   plugins: [svelte(), cloudoxApp(), repoFiles()],
   server: {
     port: 5181,

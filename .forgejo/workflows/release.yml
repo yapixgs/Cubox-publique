@@ -269,10 +269,15 @@ jobs:
           # relancer publish-github.sh qui les re-téléchargerait depuis la
           # forge : un aller-retour inutile, et une occasion de plus de publier
           # autre chose que ce qui a été testé.
-          gh release view "$TAG" --repo "$MIROIR" >/dev/null 2>&1 \
-            || gh release create "$TAG" --repo "$MIROIR" \
-                 --title "Cubox $VERSION" \
-                 --notes "Publié automatiquement depuis $GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+          # Les notes de la release = la section du CHANGELOG de cette version
+          # (avant : « Publié automatiquement… », sans rien dire du contenu).
+          awk -v v="## $VERSION" '$0==v{f=1;next} /^## /{if(f)exit} f' CHANGELOG.md > /tmp/notes.md
+          [ -s /tmp/notes.md ] || echo "Voir le journal des versions." > /tmp/notes.md
+          if gh release view "$TAG" --repo "$MIROIR" >/dev/null 2>&1; then
+            gh release edit "$TAG" --repo "$MIROIR" --notes-file /tmp/notes.md
+          else
+            gh release create "$TAG" --repo "$MIROIR" --title "Cubox $VERSION" --notes-file /tmp/notes.md
+          fi
           gh release upload "$TAG" dist/* --repo "$MIROIR" --clobber
           echo "assets miroités vers $MIROIR"
 

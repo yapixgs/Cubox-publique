@@ -87,12 +87,14 @@ test('desktop: the three cards side by side', async ({ page, isMobile }) => {
   expect(boxes[0]?.y).toBe(boxes[2]?.y)
 })
 
-test('the release notes of the latest version are shown as text, never as HTML', async ({ page }) => {
+test('the release notes come from the CHANGELOG, the latest one open, dated by the release', async ({ page }) => {
   await fakeReleases(page)
   await page.goto('/')
   const notes = page.locator('#nouveautes')
-  await expect(notes.getByRole('heading', { name: 'Nouveautés', level: 3 })).toBeVisible()
-  await expect(notes).toContainText('Modrinth : navigateur intégré')
-  await expect(notes).toContainText('<script>alert(1)</script>')
-  await expect(notes.locator('script')).toHaveCount(0)
+  await expect(notes.locator('details').first()).toHaveAttribute('open', '')
+  await expect(notes.locator('details')).toHaveCount(3)
+  await expect(notes.locator('summary').first()).toContainText('1.3.3')
+  await expect(notes.locator('summary').first()).toContainText('30 septembre 2026')
+  await expect(notes.getByRole('heading', { level: 3 }).first()).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })

@@ -1,5 +1,5 @@
 import { describe as group, expect, test } from 'vitest'
-import { describe, latest, size, notesOf } from '../../src/lib/releases.js'
+import { describe, latest, size, notesOf, changelogSections } from '../../src/lib/releases.js'
 
 /** @param {string} name */
 const asset = (name, bytes = 1) => ({ name, size: bytes, browser_download_url: `https://example.org/${name}` })
@@ -57,5 +57,15 @@ group('notesOf', () => {
   })
   test('an empty body gives no block', () => {
     expect(notesOf(undefined)).toEqual([])
+  })
+})
+
+group('changelogSections', () => {
+  test('the last versions of the CHANGELOG, list items glued back together', () => {
+    const md = '# Journal\n\n## 1.2.0\n\n### Ajouté\n- **Un** truc\n  sur deux lignes.\n\n## 1.1.0\n- Autre\n\n## 1.0.0\n- Vieux'
+    expect(changelogSections(md, 2)).toEqual([
+      { version: '1.2.0', notes: [{ kind: 'title', text: 'Ajouté' }, { kind: 'item', text: 'Un truc sur deux lignes.' }] },
+      { version: '1.1.0', notes: [{ kind: 'item', text: 'Autre' }] },
+    ])
   })
 })

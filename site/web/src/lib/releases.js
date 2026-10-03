@@ -122,3 +122,33 @@ export async function fetchReleases(count = 3) {
     history: list.slice(0, count).map((release) => ({ ...describe(release), notes: notesOf(/** @type {any} */ (release).body) })),
   }
 }
+
+/**
+ * The sections of CHANGELOG.md (« ## 1.3.3 »), newest first, as plain blocks.
+ * @param {string} markdown
+ * @param {number} [count]
+ * @returns {{ version: string, notes: { kind: 'title' | 'item' | 'text', text: string }[] }[]}
+ */
+export function changelogSections(markdown, count = 3) {
+  /** @type {{ version: string, lines: string[] }[]} */
+  const sections = []
+  for (const line of (markdown ?? '').split(/\r?\n/)) {
+    const heading = /^##\s+v?(\d+\.\d+(?:\.\d+)?\S*)/.exec(line)
+    if (heading) { sections.push({ version: heading[1], lines: [] }); continue }
+    const current = sections.at(-1)
+    if (current) current.lines.push(line)
+  }
+  return sections.slice(0, count).map((section) => ({ version: section.version, notes: joinContinuations(notesOf(section.lines.join('\n'))) }))
+}
+
+/** A list item wrapped over several lines arrives as an item then text lines: glue them back. */
+function joinContinuations(/** @type {{ kind: 'title' | 'item' | 'text', text: string }[]} */ blocks) {
+  /** @type {{ kind: 'title' | 'item' | 'text', text: string }[]} */
+  const out = []
+  for (const block of blocks) {
+    const last = out.at(-1)
+    if (block.kind === 'text' && last && last.kind !== 'title') last.text += ' ' + block.text
+    else out.push({ ...block })
+  }
+  return out
+}

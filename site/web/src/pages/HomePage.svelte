@@ -3,10 +3,17 @@
   import { Badge, Panel, Prompt, Spinner } from '@cloudox/socle'
   import { onMount } from 'svelte'
   import Downloads from '../lib/Downloads.svelte'
-  import { MIRROR, PACMAN_DOC, RELEASES_URL, fetchReleases } from '../lib/releases.js'
+  import { MIRROR, PACMAN_DOC, RELEASES_URL, changelogSections, fetchReleases } from '../lib/releases.js'
 
   /** @type {{ state: 'loading' } | { state: 'ok', release: Awaited<ReturnType<typeof fetchReleases>>['latest'], history: Awaited<ReturnType<typeof fetchReleases>>['history'] } | { state: 'error', message: string }} */
   let releases = $state({ state: 'loading' })
+
+  // The notes are the CHANGELOG of the repository, embedded at build time; the date
+  // comes from the published release when the mirror answers.
+  const CHANGES = changelogSections(__CUBOX_CHANGELOG__)
+  /** @param {string} version */
+  const dateOf = (version) =>
+    releases.state === 'ok' ? releases.history.find((entry) => entry.version.replace(/^v/, '') === version)?.date ?? '' : ''
 
   onMount(async () => {
     try {
@@ -92,28 +99,19 @@
 
 <section id="nouveautes" aria-labelledby="titre-nouveautes">
   <h2 id="titre-nouveautes"><span>#</span> Nouveautés</h2>
-  {#if releases.state === 'loading'}
-    <p class="muted"><Spinner label="Chargement des notes de version" /> Chargement des notes de version…</p>
-  {:else if releases.state === 'ok' && releases.history.length}
-    {#each releases.history as entry, index (entry.version)}
-      <details class="release" open={index === 0}>
-        <summary><b>{entry.version}</b>{entry.date ? ` — ${entry.date}` : ''}</summary>
-        {#if entry.notes.length}
-          <div class="notes">
-            {#each entry.notes as block, at (at)}
-              {#if block.kind === 'title'}<h3>{block.text}</h3>
-              {:else if block.kind === 'item'}<p class="item">{block.text}</p>
-              {:else}<p>{block.text}</p>{/if}
-            {/each}
-          </div>
-        {:else}
-          <p class="muted">Pas de note publiée pour cette version.</p>
-        {/if}
-      </details>
-    {/each}
-  {:else}
-    <p class="muted">Notes de version indisponibles ici : elles restent sur <a href="{MIRROR}/blob/main/CHANGELOG.md" rel="noopener">le journal des versions</a>.</p>
-  {/if}
+  {#each CHANGES as entry, index (entry.version)}
+    <details class="release" open={index === 0}>
+      <summary><b>{entry.version}</b>{dateOf(entry.version) ? ` — ${dateOf(entry.version)}` : ''}</summary>
+      <div class="notes">
+        {#each entry.notes as block, at (at)}
+          {#if block.kind === 'title'}<h3>{block.text}</h3>
+          {:else if block.kind === 'item'}<p class="item">{block.text}</p>
+          {:else}<p>{block.text}</p>{/if}
+        {/each}
+      </div>
+    </details>
+  {/each}
+  <p class="muted"><a href="{MIRROR}/blob/main/CHANGELOG.md" rel="noopener">Tout le journal des versions</a></p>
 </section>
 
 <section id="fonctions" aria-labelledby="titre-fonctions">
@@ -183,5 +181,6 @@
   .notes { display: grid; gap: 4px; margin-top: 8px; max-width: 72ch; }
   .notes h3 { font-size: 15px; margin: 8px 0 2px; color: var(--cx-fg-strong); }
   .notes .item { padding-left: 1.2em; text-indent: -1.2em; }
+  .notes p { overflow-wrap: anywhere; }
   .notes .item::before { content: '- '; color: var(--cx-accent); }
 </style>
