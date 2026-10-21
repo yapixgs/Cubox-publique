@@ -27,7 +27,19 @@ val projectConfig = PropertiesUtils.load(rootProject.file("config/project.proper
 val isOfficial = JenkinsUtils.IS_ON_CI || GitHubActionUtils.IS_ON_OFFICIAL_REPO
 
 val versionType = System.getenv("VERSION_TYPE") ?: if (isOfficial) "nightly" else "unofficial"
-val versionRoot = System.getenv("VERSION_ROOT") ?: projectConfig.getProperty("versionRoot") ?: "3"
+// Cubox : la version n'est écrite dans aucun fichier (R4.9). La livraison l'injecte
+// (VERSION_ROOT) ; un build local la déduit du dernier tag vX.Y.Z du dépôt.
+val versionRoot = System.getenv("VERSION_ROOT")
+    ?: projectConfig.getProperty("versionRoot")
+    ?: versionDuDernierTag()
+    ?: "0.0.0-dev"
+
+fun versionDuDernierTag(): String? = runCatching {
+    providers.exec {
+        commandLine("git", "describe", "--tags", "--abbrev=0", "--match", "v[0-9]*")
+        isIgnoreExitValue = true
+    }.standardOutput.asText.get().trim().removePrefix("v").ifBlank { null }
+}.getOrNull()
 
 val microsoftAuthId = System.getenv("MICROSOFT_AUTH_ID") ?: ""
 // CurseForge API key, baked into every build so the CurseForge browser/links

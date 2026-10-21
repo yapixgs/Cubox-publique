@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { BASE, fakeReleases } from './fake-releases.js'
+import { BASE, RELEASES, fakeReleases } from './fake-releases.js'
 
 test('the latest published version is shown, pre-releases skipped', async ({ page }) => {
   await fakeReleases(page)
@@ -97,4 +97,20 @@ test('the release notes come from the CHANGELOG, the latest one open, dated by t
   await expect(notes.locator('summary').first()).toContainText('30 septembre 2026')
   await expect(notes.getByRole('heading', { level: 3 }).first()).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
+
+test('une version livrée après la v1.4.0 montre les notes de sa Release', async ({ page }) => {
+  const nouvelle = {
+    tag_name: 'v1.4.0',
+    published_at: '2026-10-22T10:00:00Z',
+    body: '## Ajouts\n- **site :** notes de version lues sur le miroir',
+    assets: [],
+  }
+  await fakeReleases(page, { body: [nouvelle, ...RELEASES] })
+  await page.goto('/')
+  const notes = page.locator('#nouveautes')
+  await expect(notes.locator('summary').first()).toContainText('1.4.0')
+  await expect(notes.locator('summary').first()).toContainText('22 octobre 2026')
+  await expect(notes.getByText('site : notes de version lues sur le miroir')).toBeVisible()
+  await expect(notes.locator('summary').nth(1)).toContainText('1.3.3')
 })

@@ -1,0 +1,66 @@
+# Miroir public de Cubox (ADR-0041 d'infra) — dérogation R8.1 permanente de cloudox.toml.
+#
+# La forge refuse l'accès anonyme : chaque version doit aussi partir sur
+# github.com/yapixgs/Cubox-publique, sinon personne ne peut la télécharger. Ce travail
+# exige deux secrets que les workflows canoniques ne transmettent pas (GH_MIRROR_TOKEN,
+# ARCH_SIGNING_KEY) et un conteneur Arch (makepkg) : d'où ce troisième workflow.
+#
+# Lancé par la livraison (`just publication` → packaging/publier-forge.sh) une fois la
+# Release de la forge complète ; à la main pour republier une version. Toute la logique
+# est dans le justfile (`just miroir`), comme pour la CI (R8.2).
+name: Miroir
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version publiée à miroiter (vX.Y.Z)"
+        required: true
+        type: string
+
+concurrency:
+  group: miroir
+  cancel-in-progress: false
+
+jobs:
+  miroir:
+    name: miroir
+    runs-on: cloudox
+    container:
+      image: docker.io/library/archlinux:base-devel
+    steps:
+      - name: Outils
+        run: pacman -Syu --noconfirm --needed git jq curl unzip github-cli jdk21-openjdk just gnupg
+
+      # Clone complet : le paquet pacman tire sa version et son code des tags.
+      - name: Récupérer le dépôt
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          git init -q .
+          git config --global --add safe.directory "$PWD"
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          entete="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
+          git -c http.extraheader="$entete" fetch -q --tags origin main
+          git checkout -q FETCH_HEAD
+
+      - name: Publier sur le miroir
+        run: just miroir "${{ github.event.inputs.version }}"
+        env:
+          FORGEJO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_MIRROR_TOKEN: ${{ secrets.GH_MIRROR_TOKEN }}
+          ARCH_SIGNING_KEY: ${{ secrets.ARCH_SIGNING_KEY }}
+
+      # R8.7 : un échec se signale en ticket, avec la fin de sa sortie.
+      - name: Signaler l'échec
+        if: failure()
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          jq -n --arg t "Échec du miroir public — $VERSION" \
+            --arg b "Le workflow Miroir a échoué pour $VERSION : $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_NUMBER" \
+            '{title: $t, body: $b}' \
+          | curl -sS -X POST -H "Authorization: token $TOKEN" -H 'Content-Type: application/json' \
+              -d @- "$GITHUB_SERVER_URL/api/v1/repos/$GITHUB_REPOSITORY/issues" >/dev/null

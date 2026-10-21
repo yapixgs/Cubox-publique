@@ -2,6 +2,9 @@
 
 Les versions publiées se téléchargent sur <https://cubox.yabox.wasabout.net>.
 
+> Journal figé à la v1.3.3. Depuis la v1.4.0, les notes de chaque version sont celles de
+> sa Release : <https://github.com/yapixgs/Cubox-publique/releases>.
+
 ## 1.3.3
 
 ### Corrigé

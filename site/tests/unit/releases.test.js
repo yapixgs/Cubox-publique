@@ -1,5 +1,5 @@
 import { describe as group, expect, test } from 'vitest'
-import { describe, latest, size, notesOf, changelogSections } from '../../src/lib/releases.js'
+import { describe, latest, size, notesOf, changelogSections, notesDesVersions } from '../../src/lib/releases.js'
 
 /** @param {string} name */
 const asset = (name, bytes = 1) => ({ name, size: bytes, browser_download_url: `https://example.org/${name}` })
@@ -66,6 +66,32 @@ group('changelogSections', () => {
     expect(changelogSections(md, 2)).toEqual([
       { version: '1.2.0', notes: [{ kind: 'title', text: 'Ajouté' }, { kind: 'item', text: 'Un truc sur deux lignes.' }] },
       { version: '1.1.0', notes: [{ kind: 'item', text: 'Autre' }] },
+    ])
+  })
+})
+
+group('notesDesVersions', () => {
+  /** @typedef {{ kind: 'title' | 'item' | 'text', text: string }} Bloc */
+  /** @type {{ version: string, notes: Bloc[] }[]} */
+  const archive = [
+    { version: '1.3.3', notes: [{ kind: 'item', text: 'Correctif archivé' }] },
+    { version: '1.3.2', notes: [{ kind: 'item', text: 'Ajout archivé' }] },
+  ]
+  test('les notes de la Release pour une version récente, le CHANGELOG pour les anciennes', () => {
+    /** @type {{ version: string, date: string, notes: Bloc[] }[]} */
+    const historique = [
+      { version: 'v1.4.0', date: '22 octobre 2026', notes: [{ kind: 'item', text: 'Notes de la Release' }] },
+      { version: 'v1.3.3', date: '30 septembre 2026', notes: [{ kind: 'text', text: 'Publié automatiquement' }] },
+    ]
+    expect(notesDesVersions(historique, archive)).toEqual([
+      { version: '1.4.0', date: '22 octobre 2026', notes: [{ kind: 'item', text: 'Notes de la Release' }] },
+      { version: '1.3.3', date: '30 septembre 2026', notes: [{ kind: 'item', text: 'Correctif archivé' }] },
+      { version: '1.3.2', date: '', notes: [{ kind: 'item', text: 'Ajout archivé' }] },
+    ])
+  })
+  test('sans réponse du miroir, le CHANGELOG seul', () => {
+    expect(notesDesVersions(null, archive, 1)).toEqual([
+      { version: '1.3.3', date: '', notes: [{ kind: 'item', text: 'Correctif archivé' }] },
     ])
   })
 })

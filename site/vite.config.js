@@ -4,11 +4,12 @@ import { cloudoxApp } from '@cloudox/socle/vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import { defineConfig } from 'vitest/config'
 
-const REPO = new URL('../../', import.meta.url)
+const REPO = new URL('../', import.meta.url)
 
 /**
- * In development, serves the two files the image takes from elsewhere in the repository
- * (site/Dockerfile copies them next to the build): the Cubox logo and the Arch install script.
+ * Les deux fichiers du site qui vivent ailleurs dans le dépôt : le logo de Cubox et le
+ * script d'installation Arch. Servis tels quels en développement, copiés dans `dist/` au
+ * build : l'image ne fait que copier `dist/` (R9.3).
  * @returns {import('vite').Plugin}
  */
 function repoFiles() {
@@ -17,16 +18,22 @@ function repoFiles() {
     '/cubox.png': ['HMCL/image/cubox.png', 'image/png'],
     '/install-arch.sh': ['packaging/arch/install-arch.sh', 'text/plain; charset=utf-8'],
   }
+  /** @param {string} relative */
+  const read = (relative) => readFileSync(fileURLToPath(new URL(relative, REPO)))
   return {
     name: 'cubox-repo-files',
-    apply: 'serve',
     configureServer(server) {
       server.middlewares.use((request, response, next) => {
         const file = files[(request.url ?? '').split('?')[0]]
         if (!file) return next()
         response.setHeader('Content-Type', file[1])
-        response.end(readFileSync(fileURLToPath(new URL(file[0], REPO))))
+        response.end(read(file[0]))
       })
+    },
+    generateBundle() {
+      for (const [url, [relative]] of Object.entries(files)) {
+        this.emitFile({ type: 'asset', fileName: url.slice(1), source: read(relative) })
+      }
     },
   }
 }
@@ -36,7 +43,7 @@ const RELEASES_REPO = process.env.CUBOX_RELEASES_REPO ?? 'yapixgs/Cubox-publique
 
 // The release notes come from the repository's own CHANGELOG.md (the source of
 // truth, written with each release), embedded at build time: the GitHub release
-// bodies only said « Publié automatiquement… ». site/Dockerfile copies it to /.
+// bodies only said « Publié automatiquement… ».
 const CHANGELOG = readFileSync(fileURLToPath(new URL('CHANGELOG.md', REPO)), 'utf8')
 
 export default defineConfig({

@@ -152,3 +152,24 @@ function joinContinuations(/** @type {{ kind: 'title' | 'item' | 'text', text: s
   }
   return out
 }
+
+/**
+ * Les notes des dernières versions, les plus récentes d'abord. Depuis la v1.4.0, les notes
+ * d'une version sont celles de sa Release (R4.9) ; les versions antérieures gardent leur
+ * section du CHANGELOG.md, figé. Sans réponse du miroir, le CHANGELOG seul.
+ * @param {{ version: string, date: string, notes: { kind: 'title' | 'item' | 'text', text: string }[] }[] | null} historique les versions publiées sur le miroir
+ * @param {{ version: string, notes: { kind: 'title' | 'item' | 'text', text: string }[] }[]} archive les sections du CHANGELOG
+ * @param {number} [nombre]
+ */
+export function notesDesVersions(historique, archive, nombre = 3) {
+  const publiees = (historique ?? []).map((entree) => {
+    const version = entree.version.replace(/^v/, '')
+    const ancienne = archive.find((section) => section.version === version)
+    return { version, date: entree.date, notes: ancienne?.notes ?? entree.notes }
+  })
+  const connues = new Set(publiees.map((entree) => entree.version))
+  const completees = archive
+    .filter((section) => !connues.has(section.version))
+    .map((section) => ({ ...section, date: '' }))
+  return [...publiees, ...completees].slice(0, nombre)
+}

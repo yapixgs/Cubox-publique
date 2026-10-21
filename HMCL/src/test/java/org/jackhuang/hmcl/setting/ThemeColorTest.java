@@ -30,7 +30,8 @@ public final class ThemeColorTest {
     @Test
     public void testOf() {
         assertEquals(new ThemeColor("#AABBCC", Color.web("#AABBCC")), ThemeColor.of("#AABBCC"));
-        assertEquals(new ThemeColor("blue", Color.web("#5C6BC0")), ThemeColor.of("blue"));
+        assertEquals(new ThemeColor("cubox_cyan", Color.web("#2FA8F0")), ThemeColor.of("cubox_cyan"));
+        assertEquals(new ThemeColor("cubox_amber", Color.web("#F6A623")), ThemeColor.of("cubox_amber"));
         assertEquals(new ThemeColor("darker_blue", Color.web("#283593")), ThemeColor.of("darker_blue"));
         assertEquals(new ThemeColor("green", Color.web("#43A047")), ThemeColor.of("green"));
         assertEquals(new ThemeColor("orange", Color.web("#E67E22")), ThemeColor.of("orange"));

@@ -1,0 +1,6 @@
+# R1.5 — les chemins sensibles passent par le Propriétaire.
+/.forgejo/ @Yapix839
+/CODEOWNERS @Yapix839
+/cloudox.toml @Yapix839
+/justfile @Yapix839
+/packaging/ @Yapix839

@@ -1,0 +1,7 @@
+# Contexte de packaging/Dockerfile : le dépôt, sans ce qui se reconstruit.
+.git
+**/build
+**/.gradle
+dist
+site/node_modules
+site/dist

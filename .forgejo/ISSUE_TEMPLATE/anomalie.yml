@@ -1,0 +1,21 @@
+name: Anomalie
+about: Quelque chose ne marche pas comme prévu.
+labels: ["type/anomalie", "etat/a-trier"]
+body:
+  - type: textarea
+    id: constate
+    attributes:
+      label: Comportement constaté
+      description: Ce qui se passe, avec une preuve (capture, journal, adresse).
+    validations:
+      required: true
+  - type: textarea
+    id: attendu
+    attributes:
+      label: Comportement attendu
+    validations:
+      required: true
+  - type: textarea
+    id: reproduire
+    attributes:
+      label: Étapes pour reproduire

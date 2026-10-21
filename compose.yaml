@@ -1,0 +1,12 @@
+# Cubox en local (R11.7) : le site tel qu'en production, sur http://127.0.0.1:8080.
+# Le produit n'a ni backend ni base : le lanceur se compile avec Gradle (README).
+# `just dev-image` construit d'abord le site (site/dist), que l'image ne fait que copier.
+services:
+  site:
+    build: site
+    ports:
+      - "127.0.0.1:8080:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /etc/nginx/conf.d

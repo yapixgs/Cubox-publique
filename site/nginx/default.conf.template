@@ -12,8 +12,8 @@
 #   /Yapix839/Cubox/releases/download/v1.2/…SHA256.txt       404
 #
 # Une page publique qui pointerait sur la forge ne servirait donc que des
-# liens morts. Le dépôt prévoyait déjà la parade : `packaging/publish-github.sh`
-# miroite chaque release vers github.com/yapixgs/Cubox-publique, qui lui est
+# liens morts. La livraison miroite donc chaque version (workflow Miroir,
+# packaging/miroir.sh) vers github.com/yapixgs/Cubox-publique, qui lui est
 # réellement anonyme (302 -> 200 vérifié) et renvoie `access-control-allow-origin: *`.
 #
 # La forge reste la source de vérité ; GitHub est le canal de distribution.

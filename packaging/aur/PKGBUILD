@@ -37,13 +37,20 @@ sha256sums=('SKIP')
 # Génère une version unique par commit (ex. 1.0.r123.g9d723c5) afin que
 # chaque nouveau commit sur main déclenche un vrai rebuild — sinon makepkg
 # réinstalle l'ancien paquet déjà compilé au lieu de recompiler le code à jour.
+# La version vient du dernier tag vX.Y.Z (posé par la livraison, R4.9), ou de
+# VERSION_ROOT quand la livraison la fournit : elle n'est écrite dans aucun fichier.
+_version() {
+  if [ -n "${VERSION_ROOT:-}" ]; then
+    printf '%s' "$VERSION_ROOT"
+  else
+    git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null | sed 's/^v//'
+  fi
+}
+
 pkgver() {
   cd "$srcdir/$pkgname"
-  # La version est LUE, pas recopiée : un numéro en dur ici finit toujours par
-  # diverger de config/project.properties, et c'est celui-ci qui fait foi
-  # (release.yml refuse de publier si le tag ne lui correspond pas).
   local racine
-  racine="$(sed -n 's/^versionRoot=//p' config/project.properties | tr -d ' \r')"
+  racine="$(_version)"
   printf "%s.r%s.g%s" "${racine:-0}" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
@@ -87,6 +94,8 @@ build() {
   # qu'à étiqueter le canal de mise à jour, et Cubox n'en a pas.
   # `clean` d'abord : garantit que le jar embarque bien la version courante
   # (hmcl.properties), même si un build/ d'une compilation précédente traîne.
+  VERSION_ROOT="$(_version)"
+  export VERSION_ROOT
   env -u GITHUB_SHA -u BUILD_NUMBER JAVA_TOOL_OPTIONS="-XX:-UsePerfData" \
     ./gradlew clean :HMCL:makeExecutables --no-daemon --stacktrace
 }

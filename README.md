@@ -3,90 +3,35 @@
 
   # Cubox
 
-  **Launcher Minecraft Java Edition, hors-ligne, avec les mods.**
-
-  [Télécharger](https://cubox.yabox.wasabout.net) ·
-  [Versions](https://github.com/yapixgs/Cubox-publique/releases) ·
-  [Guide débutant](docs/GUIDE_MINECRAFT_DEBUTANT.md) ·
-  [Nouveautés](CHANGELOG.md)
+  **Lanceur Minecraft Java Edition, hors-ligne, avec les mods.**
 </div>
 
----
+Cubox installe et lance Minecraft avec Forge, Fabric, Quilt, NeoForge ou OptiFine, sans
+compte Microsoft : un pseudo suffit. Java 21 est inclus dans chaque paquet, l'interface est
+en français.
 
-- 🧩 **Mods et modpacks** — Forge, Fabric, Quilt, NeoForge, OptiFine. Import
-  Modrinth, CurseForge et MultiMC, navigateur Modrinth intégré.
-- 🔒 **Aucun compte** — mode hors-ligne : un pseudo suffit, rien n'est envoyé à
-  Microsoft. L'auto-update est désactivée.
-- 🎨 **Skins persos** — via `authlib-injector` (Ely.by par exemple), toujours
-  sans compte Microsoft.
-- 💻 **Windows, Linux, Arch** — Java 21 inclus dans chaque paquet, rien d'autre
-  à installer. Interface en français.
+- **Télécharger** : <https://cubox.yabox.wasabout.net> (Windows, Linux, Arch).
+- **Versions** : <https://github.com/yapixgs/Cubox-publique/releases>.
+- **Débuter** : [guide Minecraft](docs/GUIDE_MINECRAFT_DEBUTANT.md) ·
+  [dépôt pacman](docs/DEPOT-PACMAN.md) · [feuille de route](docs/ROADMAP.md).
 
-> ⚠️ Les serveurs qui exigent une vérification du compte Microsoft (Hypixel et
-> consorts) refuseront la connexion. C'est une protection côté serveur qu'aucun
-> launcher hors-ligne ne peut contourner. Le solo, le LAN, tes propres serveurs
-> et ceux en `online-mode=false` fonctionnent normalement.
+> Les serveurs qui exigent un compte Microsoft vérifié (Hypixel et consorts) refusent la
+> connexion : aucun lanceur hors-ligne ne peut le contourner. Le solo, le LAN et les
+> serveurs en `online-mode=false` fonctionnent normalement.
 
-## Installer
+## Développer
 
-Rends-toi sur **<https://cubox.yabox.wasabout.net>**.
+- `just dev` : le site de téléchargement sur <http://127.0.0.1:5181> ;
+- `./gradlew :HMCL:makeExecutables` : le lanceur (JDK 21), dans `HMCL/build/libs/` ;
+- `just ci` : les contrôles de la CI ; `just paquets 1.2.3` : les paquets distribuables.
 
-| | |
-|---|---|
-| **Windows** | décompresser le `.zip`, lancer `Installer.exe` |
-| **Linux** | décompresser le `.tar.gz`, lancer `./install.sh` |
-| **Arch** | `curl -fsSLO https://cubox.yabox.wasabout.net/install-arch.sh && bash install-arch.sh` |
-
-Sous Arch, le script met en place un dépôt pacman signé : `yay -Syu` met
-ensuite Cubox à jour comme n'importe quel paquet.
-Voir [`docs/DEPOT-PACMAN.md`](docs/DEPOT-PACMAN.md).
-
-Les installeurs ne demandent aucun privilège d'administrateur : tout va dans
-ton dossier personnel, et un désinstalleur est fourni.
-
-## Compiler soi-même
-
-**Prérequis** : JDK 21 et environ 1,5 Go d'espace disque.
-
-```bash
-./gradlew :HMCL:makeExecutables
-```
-
-Résultat dans `HMCL/build/libs/` : `Cubox-<version>.jar`, `.exe` et `.sh`.
-Ces trois fichiers ont besoin d'un Java 21 installé sur la machine.
-
-Pour produire les paquets distribuables, qui embarquent leur propre Java :
-
-```bash
-./packaging/make-release.sh
-```
-
-## Structure
-
-| Dossier | Contenu |
-|---|---|
-| `HMCL/`, `HMCLCore/`, `HMCLBoot/` | le launcher |
-| `packaging/` | paquets distribuables, installeurs, `PKGBUILD` Arch |
-| `site/` | la page de téléchargement |
-| `docs/` | documentation |
-
-## Documentation
-
-| | |
-|---|---|
-| [Guide Minecraft débutant](docs/GUIDE_MINECRAFT_DEBUTANT.md) | solo, LAN, serveurs, mods |
-| [Dépôt pacman](docs/DEPOT-PACMAN.md) | mises à jour automatiques sous Arch |
-| [Publier une version](docs/PUBLIER-UNE-VERSION.md) | pour les mainteneurs |
-| [Feuille de route](docs/ROADMAP.md) | fonctionnalités et pistes |
-| [Journal des versions](CHANGELOG.md) | ce qui change à chaque version |
-| [Conventions de code](AGENTS.md) | nullabilité, immuabilité, documentation |
+La documentation des mainteneurs est dans le
+[wiki du dépôt](https://forge.oxitablock.com/Cloudox/Cubox/wiki).
 
 ## Licence
 
-Cubox est un **fork non-officiel** de
-[HMCL (Hello Minecraft! Launcher)](https://github.com/HMCL-dev/HMCL), distribué
-sous **GNU GPL v3** (voir [`LICENSE`](LICENSE)). Cubox n'est ni affilié ni
-approuvé par le projet HMCL, ni par Mojang ou Microsoft.
-
-Les avis de copyright d'origine sont conservés conformément à la licence.
+Cubox est un **fork non officiel** de
+[HMCL (Hello Minecraft! Launcher)](https://github.com/HMCL-dev/HMCL), distribué sous
+**GNU GPL v3** (voir [`LICENSE`](LICENSE)). Il n'est ni affilié ni approuvé par le projet
+HMCL, ni par Mojang ou Microsoft. Les avis de copyright d'origine sont conservés.
 Crédits : HMCL — huangyuhui et contributeurs.

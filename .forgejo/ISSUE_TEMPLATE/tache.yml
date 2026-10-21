@@ -1,0 +1,16 @@
+name: Tâche
+about: Travail technique sans changement visible pour l'utilisateur (maintenance, refonte, outillage).
+labels: ["type/maintenance", "etat/a-trier"]
+body:
+  - type: textarea
+    id: quoi
+    attributes:
+      label: Quoi et pourquoi
+    validations:
+      required: true
+  - type: textarea
+    id: termine
+    attributes:
+      label: Terminé quand
+    validations:
+      required: true

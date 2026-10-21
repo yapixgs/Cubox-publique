@@ -3,17 +3,15 @@
   import { Badge, Panel, Prompt, Spinner } from '@cloudox/socle'
   import { onMount } from 'svelte'
   import Downloads from '../lib/Downloads.svelte'
-  import { MIRROR, PACMAN_DOC, RELEASES_URL, changelogSections, fetchReleases } from '../lib/releases.js'
+  import { MIRROR, PACMAN_DOC, RELEASES_URL, changelogSections, fetchReleases, notesDesVersions } from '../lib/releases.js'
 
   /** @type {{ state: 'loading' } | { state: 'ok', release: Awaited<ReturnType<typeof fetchReleases>>['latest'], history: Awaited<ReturnType<typeof fetchReleases>>['history'] } | { state: 'error', message: string }} */
   let releases = $state({ state: 'loading' })
 
-  // The notes are the CHANGELOG of the repository, embedded at build time; the date
-  // comes from the published release when the mirror answers.
-  const CHANGES = changelogSections(__CUBOX_CHANGELOG__)
-  /** @param {string} version */
-  const dateOf = (version) =>
-    releases.state === 'ok' ? releases.history.find((entry) => entry.version.replace(/^v/, '') === version)?.date ?? '' : ''
+  // Les notes viennent des Releases du miroir (R4.9) ; CHANGELOG.md, embarqué au build,
+  // garde celles des versions antérieures à la v1.4.0 et sert si le miroir ne répond pas.
+  const ARCHIVE = changelogSections(__CUBOX_CHANGELOG__)
+  const CHANGES = $derived.by(() => notesDesVersions(releases.state === 'ok' ? releases.history : null, ARCHIVE))
 
   onMount(async () => {
     try {
@@ -101,7 +99,7 @@
   <h2 id="titre-nouveautes"><span>#</span> Nouveautés</h2>
   {#each CHANGES as entry, index (entry.version)}
     <details class="release" open={index === 0}>
-      <summary><b>{entry.version}</b>{dateOf(entry.version) ? ` — ${dateOf(entry.version)}` : ''}</summary>
+      <summary><b>{entry.version}</b>{entry.date ? ` — ${entry.date}` : ''}</summary>
       <div class="notes">
         {#each entry.notes as block, at (at)}
           {#if block.kind === 'title'}<h3>{block.text}</h3>

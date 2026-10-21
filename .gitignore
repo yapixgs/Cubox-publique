@@ -91,3 +91,6 @@ language-subtag-registry
 /packaging/aur/*.pkg.tar.zst
 /packaging/aur/src/
 /packaging/aur/pkg/
+
+# Dépôt pacman construit par packaging/miroir.sh
+/depot/

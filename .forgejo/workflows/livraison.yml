@@ -1,0 +1,90 @@
+# Référentiel Cloudox (R8.1, R8.5, R8.6) — fichier canonique, ne pas modifier : `normes synchro` le réécrit.
+name: Livraison
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: livraison
+  cancel-in-progress: false
+
+env:
+  DOCKER_HOST: tcp://172.17.0.1:2375
+  FORGEJO_TOKEN: ${{ github.token }}
+  # Lecture des registres de paquets Cloudox (cloudox-socle, @cloudox/socle).
+  UV_INDEX_CLOUDOX_USERNAME: ${{ secrets.FORGEJO_REGISTRY_USER }}
+  UV_INDEX_CLOUDOX_PASSWORD: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}
+  CLOUDOX_NPM_TOKEN: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}
+
+jobs:
+  version:
+    name: version
+    runs-on: cloudox
+    container:
+      image: forge.oxitablock.com/cloudox/normes:v2.0.0
+      credentials:
+        username: ${{ secrets.FORGEJO_REGISTRY_USER }}
+        password: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}
+    outputs:
+      version: ${{ steps.suivante.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with: {fetch-depth: 0}
+      - id: suivante
+        # L'affectation d'abord : un échec de `just version` arrête le job au lieu de
+        # passer pour « rien à livrer ».
+        run: |
+          version="$(just version)"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+  images:
+    name: images
+    needs: version
+    if: needs.version.outputs.version != ''
+    runs-on: cloudox
+    container:
+      image: forge.oxitablock.com/cloudox/normes:v2.0.0
+      credentials:
+        username: ${{ secrets.FORGEJO_REGISTRY_USER }}
+        password: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - run: just images "${{ needs.version.outputs.version }}"
+        env:
+          REGISTRY_USER: ${{ secrets.FORGEJO_REGISTRY_USER }}
+          REGISTRY_TOKEN: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}
+
+  publication:
+    name: publication
+    needs: [version, images]
+    runs-on: cloudox
+    container:
+      image: forge.oxitablock.com/cloudox/normes:v2.0.0
+      credentials:
+        username: ${{ secrets.FORGEJO_REGISTRY_USER }}
+        password: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with: {fetch-depth: 0}
+      - run: just publication "${{ needs.version.outputs.version }}"
+        env:
+          FORGEJO_TOKEN: ${{ github.token }}
+
+  deploiement:
+    name: deploiement
+    needs: [version, publication]
+    runs-on: cloudox
+    container:
+      image: forge.oxitablock.com/cloudox/normes:v2.0.0
+      credentials:
+        username: ${{ secrets.FORGEJO_REGISTRY_USER }}
+        password: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - run: just deploiement "${{ needs.version.outputs.version }}"
+        env:
+          FORGEJO_TOKEN: ${{ secrets.CLOUDOX_BOT_TOKEN }}
+          REGISTRY_USER: ${{ secrets.FORGEJO_REGISTRY_USER }}
+          REGISTRY_TOKEN: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}

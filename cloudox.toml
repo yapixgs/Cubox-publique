@@ -1,0 +1,30 @@
+# Descripteur du dépôt Cloudox (R4.3) — lu par les outils normes.
+#
+# Cubox est un fork de HMCL (lanceur Minecraft Java, Gradle) accompagné d'un site de
+# téléchargement. Le lanceur n'est pas une image : il est distribué en paquets, par le
+# miroir public GitHub (ADR-0041 d'infra). Le site n'est ni un `backend` ni un `frontend`
+# du gabarit : aucun composant n'est déclaré, le justfile pilote le site et le lanceur.
+nature = "produit"
+nom = "cubox"
+composants = []
+
+[derogations]
+# Le code amont de HMCL garde ses noms, commentaires et messages : seul notre code est
+# traduit (R4.2, cas 3).
+"R4.2" = "permanent: code amont HMCL (fork) — seul le code propre à Cubox est traduit"
+# L'arborescence du fork : projet Gradle à la racine (HMCL/, HMCLCore/, HMCLBoot/,
+# minecraft/, buildSrc/, gradle/, config/, lib/, gradlew…), packaging/ pour les paquets
+# du lanceur, site/ pour la page de téléchargement, CHANGELOG.md figé (lu par le site et
+# par les lanceurs déjà distribués, via le miroir).
+"R4.3" = "permanent: arborescence du fork HMCL (projet Gradle à la racine), packaging/ et site/"
+# Le site vit dans site/ et son image publiée s'appelle cloudox/cubox-site (contrat
+# externe, épinglé dans infra) : site/outil_normes.py le déclare aux tâches canoniques.
+"R3.2" = "permanent: le site (site/, image cloudox/cubox-site) n'est ni backend ni frontend"
+# docs/ ne garde que la documentation PUBLIQUE, servie anonymement par le miroir GitHub
+# et liée depuis le lanceur distribué (EULA) et le site (guide, feuille de route, dépôt
+# pacman) : la forge et son wiki exigent une connexion. Le reste est dans le wiki.
+"R5.1" = "permanent: docs/ publique servie par le miroir GitHub, liée par le lanceur distribué"
+# Troisième workflow, miroir.yml : la publication sur le miroir GitHub exige des secrets
+# (GH_MIRROR_TOKEN, ARCH_SIGNING_KEY) que les workflows canoniques ne transmettent pas, et
+# un conteneur Arch (makepkg).
+"R8.1" = "permanent: miroir.yml publie sur le miroir GitHub (ADR-0041), secrets propres"

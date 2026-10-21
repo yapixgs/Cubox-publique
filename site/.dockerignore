@@ -1,0 +1,4 @@
+# L'image ne copie que dist/ et la configuration nginx (Dockerfile).
+*
+!dist/
+!nginx/

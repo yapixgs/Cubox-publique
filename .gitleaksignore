@@ -1,0 +1,4 @@
+# Faux positifs de gitleaks dans le code amont HMCL (dérogation R4.2/R4.3 de cloudox.toml).
+# Lien d'invitation public au groupe QQ de HMCL : « authKey » n'est pas un secret.
+HMCL/terracotta-template.json:generic-api-key:32
+HMCL/src/main/resources/assets/terracotta.json:generic-api-key:87
