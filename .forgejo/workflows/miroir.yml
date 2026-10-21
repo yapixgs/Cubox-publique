@@ -27,7 +27,7 @@ jobs:
     name: miroir
     runs-on: cloudox
     container:
-      image: docker.io/library/archlinux:base-devel
+      image: docker.io/library/archlinux:base-devel-20261018.0.612668@sha256:0ccc8b2e55c0c26a6e501e892cc6b1cdea7cfdf77e432941320148b4dabd2bff
     steps:
       - name: Outils
         run: pacman -Syu --noconfirm --needed git jq curl unzip github-cli jdk21-openjdk just gnupg

@@ -32,9 +32,15 @@
 set -euo pipefail
 
 # --- Réglages ---------------------------------------------------------------
-readonly JRE_FEATURE=21
-readonly TEMURIN_WIN="https://api.adoptium.net/v3/binary/latest/${JRE_FEATURE}/ga/windows/x64/jre/hotspot/normal/eclipse?project=jdk"
-readonly TEMURIN_LINUX="https://api.adoptium.net/v3/binary/latest/${JRE_FEATURE}/ga/linux/x64/jre/hotspot/normal/eclipse?project=jdk"
+# JRE embarqué, épinglé avec ses sommes de contrôle (R8.4, R9.5) : la même version donne
+# les mêmes paquets. Même version que l'image de construction (packaging/Dockerfile).
+readonly JRE_VERSION="21.0.12.1+1"
+readonly JRE_FICHIER="${JRE_VERSION/+/_}"
+readonly TEMURIN="https://github.com/adoptium/temurin21-binaries/releases/download/jdk-${JRE_VERSION/+/%2B}"
+readonly TEMURIN_WIN="$TEMURIN/OpenJDK21U-jre_x64_windows_hotspot_${JRE_FICHIER}.zip"
+readonly TEMURIN_WIN_SHA256="d35f31e712f0fcf6ac5a093edc90204fbff22f720ba3950bd09d331d5e621636"
+readonly TEMURIN_LINUX="$TEMURIN/OpenJDK21U-jre_x64_linux_hotspot_${JRE_FICHIER}.tar.gz"
+readonly TEMURIN_LINUX_SHA256="2413149700df0f7d440500a84a8f764c535f21e5a5e87d38328b64eec2c5b500"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly ROOT
@@ -65,13 +71,15 @@ echo "   → version : $VERSION"
 
 mkdir -p "$CACHE" "$DIST"
 
-fetch_jre() {  # $1=url  $2=fichier-cache
+fetch_jre() {  # $1=url  $2=fichier-cache  $3=sha256 attendu
   if [ ! -s "$2" ]; then
     echo "   ⬇️  $(basename "$2")…"
     curl -fSL --retry 3 -o "$2" "$1"
   else
     echo "   ♻️  $(basename "$2") (déjà en cache)"
   fi
+  echo "$3  $2" | sha256sum -c - >/dev/null \
+    || { echo "❌ Somme de contrôle invalide : $2"; rm -f "$2"; exit 1; }
 }
 
 # Extrait l'archive ($1) puis renomme son unique dossier racine en jre-x64 sous $2.
@@ -88,11 +96,11 @@ extract_as_jre() {  # $1=archive  $2=dossier-destination-parent
   rm -rf "$tmp"
 }
 
-echo "📦 2/4  Récupération des JRE Java ${JRE_FEATURE}…"
-readonly WIN_ZIP="$CACHE/jre-${JRE_FEATURE}-win-x64.zip"
-readonly LIN_TGZ="$CACHE/jre-${JRE_FEATURE}-linux-x64.tar.gz"
-fetch_jre "$TEMURIN_WIN"   "$WIN_ZIP"
-fetch_jre "$TEMURIN_LINUX" "$LIN_TGZ"
+echo "📦 2/4  Récupération des JRE Java ${JRE_VERSION}…"
+readonly WIN_ZIP="$CACHE/jre-${JRE_FICHIER}-win-x64.zip"
+readonly LIN_TGZ="$CACHE/jre-${JRE_FICHIER}-linux-x64.tar.gz"
+fetch_jre "$TEMURIN_WIN"   "$WIN_ZIP" "$TEMURIN_WIN_SHA256"
+fetch_jre "$TEMURIN_LINUX" "$LIN_TGZ" "$TEMURIN_LINUX_SHA256"
 
 # --- 3/4 : paquet Windows ---------------------------------------------------
 echo "🪟 3/4  Paquet Windows (Installer.exe + Cubox.exe + jre-x64\\)…"

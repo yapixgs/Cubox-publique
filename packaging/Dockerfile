@@ -9,7 +9,7 @@
 #
 # Cibles : `verification` (scripts shell), `tests` (Gradle), `paquets-sortie` (archives).
 
-FROM docker.io/library/eclipse-temurin:21-jdk-noble AS outils
+FROM docker.io/library/eclipse-temurin:21.0.12.1_1-jdk-noble@sha256:107215954359f1ab0be058a247d7c64ed6e69c71c1682d471d38ef751ec8e964 AS outils
 RUN apt-get update -qq \
  && apt-get install -y -qq --no-install-recommends \
       git ca-certificates curl zip unzip nsis shellcheck \
