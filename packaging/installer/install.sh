@@ -22,102 +22,102 @@
 # ou désinstaller ne détruit rien.
 set -euo pipefail
 
-SOURCE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_ARCHIVE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
-APP_DIR="$DATA_HOME/cubox/app"
-BIN_DIR="$HOME/.local/bin"
-DESKTOP_DIR="$DATA_HOME/applications"
-ICON_DIR="$DATA_HOME/icons/hicolor/256x256/apps"
+DONNEES="${XDG_DATA_HOME:-$HOME/.local/share}"
+DOSSIER_APPLI="$DONNEES/cubox/app"
+DOSSIER_COMMANDES="$HOME/.local/bin"
+DOSSIER_MENU="$DONNEES/applications"
+DOSSIER_ICONES="$DONNEES/icons/hicolor/256x256/apps"
 
-c_info() { printf '\033[36m==> %s\033[0m\n' "$*"; }
-c_ok()   { printf '\033[32m  ✔ %s\033[0m\n' "$*"; }
-c_warn() { printf '\033[33m  ! %s\033[0m\n' "$*"; }
-c_err()  { printf '\033[31m  ✘ %s\033[0m\n' "$*" >&2; }
+afficher_etape()  { printf '\033[36m==> %s\033[0m\n' "$*"; }
+afficher_ok()     { printf '\033[32m  ✔ %s\033[0m\n' "$*"; }
+afficher_alerte() { printf '\033[33m  ! %s\033[0m\n' "$*"; }
+afficher_erreur() { printf '\033[31m  ✘ %s\033[0m\n' "$*" >&2; }
 
 # --- Garde-fous -------------------------------------------------------------
 # Une archive partiellement extraite produirait une installation cassée qui ne
 # se manifesterait qu'au premier lancement. On refuse tout de suite.
 for requis in Cubox.sh jre-x64/bin/java; do
-  if [[ ! -e "$SOURCE/$requis" ]]; then
-    c_err "Fichier manquant : $requis"
-    c_err "Extrais l'archive ENTIÈRE, puis relance ./install.sh depuis le dossier extrait."
+  if [[ ! -e "$SOURCE_ARCHIVE/$requis" ]]; then
+    afficher_erreur "Fichier manquant : $requis"
+    afficher_erreur "Extrais l'archive ENTIÈRE, puis relance ./install.sh depuis le dossier extrait."
     exit 1
   fi
 done
 
 if [[ $EUID -eq 0 ]]; then
-  c_err "Ne lance pas ce script en root : Cubox s'installe dans ton dossier personnel."
-  c_err "Relance-le sans sudo."
+  afficher_erreur "Ne lance pas ce script en root : Cubox s'installe dans ton dossier personnel."
+  afficher_erreur "Relance-le sans sudo."
   exit 1
 fi
 
 VERSION="inconnue"
-[[ -f "$SOURCE/VERSION" ]] && VERSION="$(<"$SOURCE/VERSION")"
+[[ -f "$SOURCE_ARCHIVE/VERSION" ]] && VERSION="$(<"$SOURCE_ARCHIVE/VERSION")"
 
 echo
 echo "  Cubox $VERSION — installation pour $USER"
-echo "  Destination : $APP_DIR"
+echo "  Destination : $DOSSIER_APPLI"
 echo
 
 # --- 1/4 : fichiers du programme -------------------------------------------
-c_info "1/4  Copie des fichiers"
+afficher_etape "1/4  Copie des fichiers"
 # On remplace intégralement l'ancienne installation : un JRE mis à jour laisse
 # sinon des bibliothèques orphelines de la version précédente, et Java charge
 # parfois la mauvaise.
-rm -rf "$APP_DIR"
-mkdir -p "$APP_DIR"
-cp -a "$SOURCE/Cubox.sh" "$SOURCE/jre-x64" "$APP_DIR/"
-chmod +x "$APP_DIR/Cubox.sh" "$APP_DIR/jre-x64/bin/java"
-[[ -f "$SOURCE/VERSION" ]] && cp -a "$SOURCE/VERSION" "$APP_DIR/"
-c_ok "$(du -sh "$APP_DIR" | cut -f1) installés"
+rm -rf "$DOSSIER_APPLI"
+mkdir -p "$DOSSIER_APPLI"
+cp -a "$SOURCE_ARCHIVE/Cubox.sh" "$SOURCE_ARCHIVE/jre-x64" "$DOSSIER_APPLI/"
+chmod +x "$DOSSIER_APPLI/Cubox.sh" "$DOSSIER_APPLI/jre-x64/bin/java"
+[[ -f "$SOURCE_ARCHIVE/VERSION" ]] && cp -a "$SOURCE_ARCHIVE/VERSION" "$DOSSIER_APPLI/"
+afficher_ok "$(du -sh "$DOSSIER_APPLI" | cut -f1) installés"
 
 # --- 2/4 : commande ---------------------------------------------------------
-c_info "2/4  Commande « cubox »"
-mkdir -p "$BIN_DIR"
-cat > "$BIN_DIR/cubox" <<EOF
+afficher_etape "2/4  Commande « cubox »"
+mkdir -p "$DOSSIER_COMMANDES"
+cat > "$DOSSIER_COMMANDES/cubox" <<EOF
 #!/usr/bin/env bash
 # Généré par l'installeur de Cubox — ne pas modifier à la main.
 #
 # On se place dans le dossier de données AVANT de lancer : Cubox range ses
 # mondes et ses mods dans le répertoire courant. Sans ce cd, les données
 # atterriraient là d'où la commande a été tapée, éparpillées un peu partout.
-CUBOX_DATA="\${XDG_DATA_HOME:-\$HOME/.local/share}/cubox"
-mkdir -p "\$CUBOX_DATA"
-cd "\$CUBOX_DATA"
-exec "$APP_DIR/Cubox.sh" "\$@"
+DONNEES_CUBOX="\${XDG_DATA_HOME:-\$HOME/.local/share}/cubox"
+mkdir -p "\$DONNEES_CUBOX"
+cd "\$DONNEES_CUBOX"
+exec "$DOSSIER_APPLI/Cubox.sh" "\$@"
 EOF
-chmod +x "$BIN_DIR/cubox"
-c_ok "$BIN_DIR/cubox"
+chmod +x "$DOSSIER_COMMANDES/cubox"
+afficher_ok "$DOSSIER_COMMANDES/cubox"
 
 case ":$PATH:" in
-  *":$BIN_DIR:"*) ;;
-  *) c_warn "$BIN_DIR n'est pas dans ton PATH — la commande « cubox » ne sera pas trouvée."
-     c_warn "Ajoute ceci à ton ~/.bashrc ou ~/.zshrc :"
-     c_warn "    export PATH=\"\$HOME/.local/bin:\$PATH\""
-     c_warn "(l'entrée de menu, elle, fonctionnera de toute façon)" ;;
+  *":$DOSSIER_COMMANDES:"*) ;;
+  *) afficher_alerte "$DOSSIER_COMMANDES n'est pas dans ton PATH — la commande « cubox » ne sera pas trouvée."
+     afficher_alerte "Ajoute ceci à ton ~/.bashrc ou ~/.zshrc :"
+     afficher_alerte "    export PATH=\"\$HOME/.local/bin:\$PATH\""
+     afficher_alerte "(l'entrée de menu, elle, fonctionnera de toute façon)" ;;
 esac
 
 # --- 3/4 : icône ------------------------------------------------------------
-c_info "3/4  Icône"
-mkdir -p "$ICON_DIR"
-if [[ -f "$SOURCE/cubox.png" ]]; then
-  cp -a "$SOURCE/cubox.png" "$ICON_DIR/cubox.png"
-  c_ok "$ICON_DIR/cubox.png"
+afficher_etape "3/4  Icône"
+mkdir -p "$DOSSIER_ICONES"
+if [[ -f "$SOURCE_ARCHIVE/cubox.png" ]]; then
+  cp -a "$SOURCE_ARCHIVE/cubox.png" "$DOSSIER_ICONES/cubox.png"
+  afficher_ok "$DOSSIER_ICONES/cubox.png"
 else
-  c_warn "cubox.png absent de l'archive — entrée de menu sans icône"
+  afficher_alerte "cubox.png absent de l'archive — entrée de menu sans icône"
 fi
 
 # --- 4/4 : entrée de menu ---------------------------------------------------
-c_info "4/4  Entrée de menu"
-mkdir -p "$DESKTOP_DIR"
-cat > "$DESKTOP_DIR/cubox.desktop" <<EOF
+afficher_etape "4/4  Entrée de menu"
+mkdir -p "$DOSSIER_MENU"
+cat > "$DOSSIER_MENU/cubox.desktop" <<EOF
 [Desktop Entry]
 Type=Application
 Name=Cubox
 GenericName=Launcher Minecraft
 Comment=Launcher Minecraft hors-ligne, mods et modpacks natifs
-Exec=$BIN_DIR/cubox
+Exec=$DOSSIER_COMMANDES/cubox
 Icon=cubox
 Terminal=false
 Categories=Game;
@@ -128,21 +128,21 @@ EOF
 # juste après la prochaine ouverture de session. On le fait si les outils sont
 # là, et on n'échoue jamais pour si peu.
 command -v update-desktop-database >/dev/null 2>&1 && \
-  update-desktop-database "$DESKTOP_DIR" >/dev/null 2>&1 || true
+  update-desktop-database "$DOSSIER_MENU" >/dev/null 2>&1 || true
 command -v gtk-update-icon-cache >/dev/null 2>&1 && \
-  gtk-update-icon-cache -qtf "$DATA_HOME/icons/hicolor" >/dev/null 2>&1 || true
-c_ok "$DESKTOP_DIR/cubox.desktop"
+  gtk-update-icon-cache -qtf "$DONNEES/icons/hicolor" >/dev/null 2>&1 || true
+afficher_ok "$DOSSIER_MENU/cubox.desktop"
 
 # --- Désinstalleur ----------------------------------------------------------
-cp -a "$SOURCE/uninstall.sh" "$APP_DIR/uninstall.sh" 2>/dev/null || true
-chmod +x "$APP_DIR/uninstall.sh" 2>/dev/null || true
+cp -a "$SOURCE_ARCHIVE/uninstall.sh" "$DOSSIER_APPLI/uninstall.sh" 2>/dev/null || true
+chmod +x "$DOSSIER_APPLI/uninstall.sh" 2>/dev/null || true
 
 echo
-c_ok "Cubox $VERSION est installé."
+afficher_ok "Cubox $VERSION est installé."
 echo
 echo "  Lancer      : la commande « cubox », ou l'entrée « Cubox » de ton menu"
-echo "  Désinstaller: $APP_DIR/uninstall.sh"
-echo "  Tes données : $DATA_HOME/cubox  (préservées lors des mises à jour)"
+echo "  Désinstaller: $DOSSIER_APPLI/uninstall.sh"
+echo "  Tes données : $DONNEES/cubox  (préservées lors des mises à jour)"
 echo
 echo "  Le dossier extrait ne sert plus à rien, tu peux le supprimer."
 echo

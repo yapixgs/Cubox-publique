@@ -1,1 +1,1 @@
-declare const __CUBOX_CHANGELOG__: string
+declare const __JOURNAL_CUBOX__: string

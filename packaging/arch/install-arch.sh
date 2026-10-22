@@ -28,8 +28,8 @@ set -euo pipefail
 # est un script qu'on découvre cassé chez l'utilisateur.
 readonly SITE="${CUBOX_SITE:-https://cubox.yabox.wasabout.net}"
 readonly DEPOT="$SITE/arch"
-readonly CLE_URL="$DEPOT/cubox-signing-key.asc"
-readonly CONF="/etc/pacman.conf"
+readonly ADRESSE_CLE="$DEPOT/cubox-signing-key.asc"
+readonly CONF_PACMAN="/etc/pacman.conf"
 
 # ── Affichage ────────────────────────────────────────────────────────────────
 if [[ -t 1 ]]; then
@@ -45,7 +45,7 @@ err()   { printf '%s  ✘ %s%s\n' "$R" "$*" "$Z" >&2; }
 # Toute commande privilégiée est AFFICHÉE avant d'être lancée. Sans ça,
 # « le script s'occupe de tout » signifie « tu ne sais pas ce qui tourne en
 # root chez toi ».
-run_sudo() {
+lancer_sudo() {
   printf '%s    $ sudo %s%s\n' "$GRIS" "$*" "$Z"
   sudo "$@"
 }
@@ -91,19 +91,19 @@ done
 # Question conservée : détruire quelque chose n'est pas un geste ordinaire.
 if [[ "${1:-}" == "--desinstaller" ]]; then
   etape "Désinstallation"
-  info "Sera retiré : le paquet cubox, la section [cubox] de $CONF,"
+  info "Sera retiré : le paquet cubox, la section [cubox] de $CONF_PACMAN,"
   info "et la clé de signature du trousseau de pacman."
   info "Tes mondes et ta configuration ne sont pas touchés."
   demander "Confirmer ?" || { echo; err "Abandon, rien n'a été modifié."; exit 1; }
 
-  if pacman -Qi cubox >/dev/null 2>&1; then run_sudo pacman -R --noconfirm cubox; else info "paquet non installé"; fi
-  if grep -qF '[cubox]' "$CONF"; then
-    run_sudo cp "$CONF" "$CONF.avant-cubox"
-    run_sudo sed -i '/^\[cubox\]$/,/^Server *=.*cubox.*$/d' "$CONF"
-    ok "section retirée (sauvegarde : $CONF.avant-cubox)"
+  if pacman -Qi cubox >/dev/null 2>&1; then lancer_sudo pacman -R --noconfirm cubox; else info "paquet non installé"; fi
+  if grep -qF '[cubox]' "$CONF_PACMAN"; then
+    lancer_sudo cp "$CONF_PACMAN" "$CONF_PACMAN.avant-cubox"
+    lancer_sudo sed -i '/^\[cubox\]$/,/^Server *=.*cubox.*$/d' "$CONF_PACMAN"
+    ok "section retirée (sauvegarde : $CONF_PACMAN.avant-cubox)"
   fi
   empreinte="$(sudo pacman-key --list-keys 2>/dev/null | grep -B1 -i 'Cubox CI' | grep -oE '[A-F0-9]{40}' | head -n1 || true)"
-  [[ -n "$empreinte" ]] && run_sudo pacman-key --delete "$empreinte" || true
+  [[ -n "$empreinte" ]] && lancer_sudo pacman-key --delete "$empreinte" || true
   echo; ok "Terminé."
   exit 0
 fi
@@ -122,8 +122,8 @@ PRESENTATION
 # ── 1. La clé ────────────────────────────────────────────────────────────────
 etape "1/4  Clé de signature"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
-info "téléchargement : $CLE_URL"
-curl -fsSL "$CLE_URL" -o "$tmp/cle.asc" || { err "Téléchargement impossible — le site est-il joignable ?"; exit 1; }
+info "téléchargement : $ADRESSE_CLE"
+curl -fsSL "$ADRESSE_CLE" -o "$tmp/cle.asc" || { err "Téléchargement impossible — le site est-il joignable ?"; exit 1; }
 ok "clé récupérée ($(wc -c < "$tmp/cle.asc") octets)"
 
 # GNUPGHOME dédié, et `|| true` : on ne lit que ce fichier, jamais le
@@ -164,28 +164,28 @@ demander "Faire confiance à cette clé ?" || { echo; err "Abandon. Rien n'a ét
 # ── 2 à 4 : gestes ordinaires, affichés mais non soumis à validation ─────────
 etape "2/4  Ajout au trousseau de pacman"
 sudo pacman-key --init >/dev/null 2>&1 || true
-run_sudo pacman-key --add "$tmp/cle.asc"
-run_sudo pacman-key --lsign-key "$EMPREINTE"
+lancer_sudo pacman-key --add "$tmp/cle.asc"
+lancer_sudo pacman-key --lsign-key "$EMPREINTE"
 ok "clé installée et approuvée"
 
 etape "3/4  Déclaration du dépôt"
-if grep -qF '[cubox]' "$CONF"; then
-  ok "déjà déclaré dans $CONF — inchangé"
+if grep -qF '[cubox]' "$CONF_PACMAN"; then
+  ok "déjà déclaré dans $CONF_PACMAN — inchangé"
 else
-  info "ajout à la fin de $CONF :"
+  info "ajout à la fin de $CONF_PACMAN :"
   printf '%s      [cubox]\n      SigLevel = Required DatabaseOptional\n      Server = %s%s\n' "$GRIS" "$DEPOT" "$Z"
   info "SigLevel = Required : pacman refusera tout paquet non signé par la clé"
   info "ci-dessus — même réglage que les dépôts officiels d'Arch."
-  run_sudo cp "$CONF" "$CONF.avant-cubox"
+  lancer_sudo cp "$CONF_PACMAN" "$CONF_PACMAN.avant-cubox"
   printf '\n[cubox]\nSigLevel = Required DatabaseOptional\nServer = %s\n' "$DEPOT" \
-    | sudo tee -a "$CONF" >/dev/null
-  ok "dépôt ajouté (sauvegarde : $CONF.avant-cubox)"
+    | sudo tee -a "$CONF_PACMAN" >/dev/null
+  ok "dépôt ajouté (sauvegarde : $CONF_PACMAN.avant-cubox)"
 fi
 
 etape "4/5  Installation"
 info "la signature est vérifiée ici : si elle ne correspond pas, pacman s'arrête"
-run_sudo pacman -Sy
-run_sudo pacman -S --needed --noconfirm cubox
+lancer_sudo pacman -Sy
+lancer_sudo pacman -S --needed --noconfirm cubox
 
 # ── 5. Ménage ────────────────────────────────────────────────────────────────
 # Une installation qui laisse traîner ses outils derrière elle n'est pas finie.
@@ -197,15 +197,15 @@ etape "5/5  Ménage"
 #    hors-ligne.
 caches=$(sudo find /var/cache/pacman/pkg -maxdepth 1 -name 'cubox-*.pkg.tar.zst*' 2>/dev/null | wc -l)
 if [[ "$caches" -gt 0 ]]; then
-  run_sudo find /var/cache/pacman/pkg -maxdepth 1 -name 'cubox-*.pkg.tar.zst*' -delete
+  lancer_sudo find /var/cache/pacman/pkg -maxdepth 1 -name 'cubox-*.pkg.tar.zst*' -delete
   ok "cache pacman nettoyé ($caches fichier(s))"
 fi
 
 # b) La sauvegarde de pacman.conf. On ne la retire QU'APRÈS avoir constaté que
 #    pacman fonctionne toujours — c'est ce qu'elle servait à garantir, et une
 #    sauvegarde qu'on efface avant d'avoir vérifié ne protège de rien.
-if [[ -f "$CONF.avant-cubox" ]] && pacman -Sl cubox >/dev/null 2>&1; then
-  run_sudo rm -f "$CONF.avant-cubox"
+if [[ -f "$CONF_PACMAN.avant-cubox" ]] && pacman -Sl cubox >/dev/null 2>&1; then
+  lancer_sudo rm -f "$CONF_PACMAN.avant-cubox"
   ok "sauvegarde de pacman.conf retirée (pacman fonctionne, elle a fait son travail)"
 fi
 
@@ -234,7 +234,7 @@ done
 
 # d) Le script lui-même. Il a fini son travail ; le laisser traîner, c'est
 #    inviter à le relancer un jour avec une empreinte périmée.
-MOI="$(readlink -f "$0" 2>/dev/null || true)"
+CE_SCRIPT="$(readlink -f "$0" 2>/dev/null || true)"
 
 echo
 ok "Cubox $(pacman -Q cubox | awk '{print $2}') est installé."
@@ -254,7 +254,7 @@ cat <<FIN
 
     Lancer        : la commande ${B}cubox${Z}, ou l'entrée « Cubox » de ton menu
     Mettre à jour : ${B}yay -Syu${Z} — comme n'importe quel paquet, sans recompiler
-    Tout retirer  : ${B}sudo pacman -R cubox${Z} puis retirer [cubox] de $CONF
+    Tout retirer  : ${B}sudo pacman -R cubox${Z} puis retirer [cubox] de $CONF_PACMAN
 
     Tes mondes et ta configuration vivent dans ~/.local/share/cubox
     et ne sont jamais touchés par une mise à jour.
@@ -263,6 +263,6 @@ cat <<FIN
 
 FIN
 
-if [[ -n "$MOI" && -f "$MOI" ]]; then
-  rm -f "$MOI" && printf '%s  ✔ %s%s\n' "$G" "script d'installation supprimé ($MOI)" "$Z"
+if [[ -n "$CE_SCRIPT" && -f "$CE_SCRIPT" ]]; then
+  rm -f "$CE_SCRIPT" && printf '%s  ✔ %s%s\n' "$G" "script d'installation supprimé ($CE_SCRIPT)" "$Z"
 fi

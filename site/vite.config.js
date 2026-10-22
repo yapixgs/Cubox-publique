@@ -4,7 +4,7 @@ import { cloudoxApp } from '@cloudox/socle/vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import { defineConfig } from 'vitest/config'
 
-const REPO = new URL('../', import.meta.url)
+const RACINE = new URL('../', import.meta.url)
 
 /**
  * Les deux fichiers du site qui vivent ailleurs dans le dépôt : le logo de Cubox et le
@@ -12,50 +12,49 @@ const REPO = new URL('../', import.meta.url)
  * build : l'image ne fait que copier `dist/` (R9.3).
  * @returns {import('vite').Plugin}
  */
-function repoFiles() {
+function fichiersDuDepot() {
   /** @type {Record<string, [string, string]>} */
-  const files = {
+  const fichiers = {
     '/cubox.png': ['HMCL/image/cubox.png', 'image/png'],
     '/install-arch.sh': ['packaging/arch/install-arch.sh', 'text/plain; charset=utf-8'],
   }
-  /** @param {string} relative */
-  const read = (relative) => readFileSync(fileURLToPath(new URL(relative, REPO)))
+  /** @param {string} chemin */
+  const lire = (chemin) => readFileSync(fileURLToPath(new URL(chemin, RACINE)))
   return {
-    name: 'cubox-repo-files',
+    name: 'cubox-fichiers-du-depot',
     configureServer(server) {
-      server.middlewares.use((request, response, next) => {
-        const file = files[(request.url ?? '').split('?')[0]]
-        if (!file) return next()
-        response.setHeader('Content-Type', file[1])
-        response.end(read(file[0]))
+      server.middlewares.use((requete, reponse, suite) => {
+        const fichier = fichiers[(requete.url ?? '').split('?')[0]]
+        if (!fichier) return suite()
+        reponse.setHeader('Content-Type', fichier[1])
+        reponse.end(lire(fichier[0]))
       })
     },
     generateBundle() {
-      for (const [url, [relative]] of Object.entries(files)) {
-        this.emitFile({ type: 'asset', fileName: url.slice(1), source: read(relative) })
+      for (const [adresse, [chemin]] of Object.entries(fichiers)) {
+        this.emitFile({ type: 'asset', fileName: adresse.slice(1), source: lire(chemin) })
       }
     },
   }
 }
 
-// Same public mirror as the nginx relay in production (site/default.conf.template).
-const RELEASES_REPO = process.env.CUBOX_RELEASES_REPO ?? 'yapixgs/Cubox-publique'
+// Le même miroir public que le relais nginx en production (site/nginx/default.conf.template).
+const DEPOT_DES_VERSIONS = process.env.CUBOX_RELEASES_REPO ?? 'yapixgs/Cubox-publique'
 
-// The release notes come from the repository's own CHANGELOG.md (the source of
-// truth, written with each release), embedded at build time: the GitHub release
-// bodies only said « Publié automatiquement… ».
-const CHANGELOG = readFileSync(fileURLToPath(new URL('CHANGELOG.md', REPO)), 'utf8')
+// CHANGELOG.md du dépôt, figé, embarqué au build : il garde les notes des versions
+// antérieures à la v1.4.0, dont les Releases GitHub ne disaient que « Publié automatiquement… ».
+const JOURNAL = readFileSync(fileURLToPath(new URL('CHANGELOG.md', RACINE)), 'utf8')
 
 export default defineConfig({
-  define: { __CUBOX_CHANGELOG__: JSON.stringify(CHANGELOG) },
-  plugins: [svelte(), cloudoxApp(), repoFiles()],
+  define: { __JOURNAL_CUBOX__: JSON.stringify(JOURNAL) },
+  plugins: [svelte(), cloudoxApp(), fichiersDuDepot()],
   server: {
     port: 5181,
     proxy: {
       '/api/releases': {
         target: 'https://api.github.com',
         changeOrigin: true,
-        rewrite: () => `/repos/${RELEASES_REPO}/releases?per_page=5`,
+        rewrite: () => `/repos/${DEPOT_DES_VERSIONS}/releases?per_page=5`,
         headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'cubox-site' },
       },
     },

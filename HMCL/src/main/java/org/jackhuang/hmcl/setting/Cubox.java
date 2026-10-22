@@ -17,22 +17,21 @@
  */
 package org.jackhuang.hmcl.setting;
 
-/// Cubox-wide feature flags.
+/// Interrupteurs de fonctionnalités propres à Cubox.
 public final class Cubox {
 
     private Cubox() {
     }
 
-    /// Cubox currently ships as an **offline-only** launcher.
+    /// Cubox est aujourd'hui distribué comme lanceur **uniquement hors ligne**.
     ///
-    /// The online mode ("CuboxPO", i.e. Microsoft sign-in for premium servers)
-    /// is **hibernated**: hidden from the UI and not selectable. It requires a
-    /// Microsoft Azure application that is impractical to provide here, so the
-    /// feature is archived rather than removed.
+    /// Le mode en ligne (« CuboxPO », connexion Microsoft pour les serveurs premium)
+    /// est **en sommeil** : caché de l'interface et impossible à choisir. Il exige une
+    /// application Microsoft Azure qu'il n'est pas raisonnable de fournir ici : la
+    /// fonctionnalité est archivée plutôt que supprimée.
     ///
-    /// Flip this to `false` to revive the online mode — the supporting code is
-    /// kept on purpose: [CuboxMode] and
-    /// `org.jackhuang.hmcl.ui.CuboxModeSelectionPane`, plus the Microsoft
-    /// entries gated on this flag in the account UI.
+    /// Passer à `false` pour réveiller le mode en ligne — le code nécessaire est
+    /// gardé exprès : [CuboxMode] et `org.jackhuang.hmcl.ui.CuboxModeSelectionPane`,
+    /// plus les entrées Microsoft de l'interface des comptes conditionnées par ce drapeau.
     public static final boolean OFFLINE_ONLY = true;
 }

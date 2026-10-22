@@ -30,23 +30,23 @@ import org.jackhuang.hmcl.ui.construct.DialogCloseEvent;
 
 import static org.jackhuang.hmcl.util.i18n.I18n.i18n;
 
-/// **ARCHIVED / hibernated.** Cubox currently ships as an offline-only launcher
-/// (see `org.jackhuang.hmcl.setting.Cubox#OFFLINE_ONLY`); this chooser is no
-/// longer shown. It is kept so the online mode ("CuboxPO") can be revived later.
+/// **ARCHIVÉ / en sommeil.** Cubox est aujourd'hui distribué uniquement hors ligne
+/// (voir `org.jackhuang.hmcl.setting.Cubox#OFFLINE_ONLY`) ; ce sélecteur n'est plus
+/// affiché. Il est gardé pour pouvoir réveiller le mode en ligne (« CuboxPO »).
 ///
-/// First-run (and on-demand) chooser between the two Cubox modes.
+/// Sélecteur entre les deux modes de Cubox, au premier lancement (et à la demande).
 ///
-/// Presents two large colored cards — CuboxFO (offline, cyan) and CuboxPO
-/// (online, amber). Picking one calls [CuboxMode#select], which persists the
-/// choice and applies the matching brand accent so the launcher immediately
-/// takes on the Cubox color.
+/// Présente deux grandes cartes colorées — CuboxFO (hors ligne, cyan) et CuboxPO
+/// (en ligne, ambre). En choisir une appelle [CuboxMode#select], qui enregistre le
+/// choix et applique l'accent de la marque correspondant : le lanceur prend aussitôt
+/// la couleur de Cubox.
 public final class CuboxModeSelectionPane extends JFXDialogLayout {
 
-    /// Builds the chooser.
+    /// Construit le sélecteur.
     ///
-    /// @param firstRun when `true`, the dialog is mandatory (no cancel button):
-    ///                 the user must pick a mode. When `false` (opened later to
-    ///                 switch modes), a cancel button is shown.
+    /// @param firstRun à `true`, la fenêtre est obligatoire (pas de bouton Annuler) :
+    ///                 l'utilisateur doit choisir un mode. À `false` (ouverte plus tard
+    ///                 pour changer de mode), un bouton Annuler est affiché.
     public CuboxModeSelectionPane(boolean firstRun) {
         setHeading(new Label(i18n("cubox.mode.title")));
 
@@ -68,7 +68,7 @@ public final class CuboxModeSelectionPane extends JFXDialogLayout {
         }
     }
 
-    /// Builds a single clickable mode card tinted with the mode's brand accent.
+    /// Construit une carte de mode cliquable, teintée de l'accent de la marque du mode.
     private JFXButton createCard(CuboxMode mode) {
         String accent = ThemeColor.getColorDisplayName(mode.getAccent().color());
 

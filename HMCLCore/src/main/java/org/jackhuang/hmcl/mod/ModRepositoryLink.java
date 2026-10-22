@@ -25,25 +25,27 @@ import java.net.URISyntaxException;
 import java.util.Locale;
 import java.util.Optional;
 
-/// Parses a public CurseForge or Modrinth project URL into the information
-/// needed to look the project up through a [RemoteModRepository].
+/// Lit l'adresse publique d'un projet CurseForge ou Modrinth et en tire ce qu'il faut
+/// pour retrouver le projet par un [RemoteModRepository].
 ///
-/// Supported shapes:
-/// - Modrinth: `https://modrinth.com/{projectType}/{slug}` where `projectType`
-///   is one of `mod`, `modpack`, `resourcepack`, `shader`.
-/// - CurseForge: `https://www.curseforge.com/minecraft/{category}/{slug}`
-///   (and the `legacy.curseforge.com` host) where `category` is one of
-///   `mc-mods`, `modpacks`, `texture-packs`, `shaders`, `worlds`.
+/// Formes reconnues :
+/// - Modrinth : `https://modrinth.com/{projectType}/{slug}` où `projectType` vaut
+///   `mod`, `modpack`, `resourcepack` ou `shader` ;
+/// - CurseForge : `https://www.curseforge.com/minecraft/{category}/{slug}` (et l'hôte
+///   `legacy.curseforge.com`) où `category` vaut `mc-mods`, `modpacks`,
+///   `texture-packs`, `shaders` ou `worlds`.
 ///
-/// Anything else (unknown host, unknown content type, malformed URL) yields an
-/// empty result so callers can show a "not a valid link" message.
+/// Tout le reste (hôte inconnu, type de contenu inconnu, adresse mal formée) donne un
+/// résultat vide : l'appelant peut afficher « lien non valide ».
+///
+/// Les noms de cette classe suivent ceux du code amont de HMCL qui l'appelle.
 @NotNullByDefault
 public final class ModRepositoryLink {
 
     private ModRepositoryLink() {
     }
 
-    /// The hosting platform a link points to.
+    /// La plateforme d'hébergement visée par un lien.
     public enum Provider {
         /// modrinth.com
         MODRINTH,
@@ -51,22 +53,22 @@ public final class ModRepositoryLink {
         CURSEFORGE
     }
 
-    /// The result of successfully parsing a project URL.
+    /// Le résultat d'une adresse de projet reconnue.
     ///
-    /// @param provider  the hosting platform the link points to
-    /// @param type      the kind of content the project is
-    /// @param idOrSlug  the project slug (Modrinth accepts it directly as an id;
-    ///                  CurseForge must resolve it to a numeric id)
+    /// @param provider  la plateforme d'hébergement visée par le lien
+    /// @param type      le genre de contenu du projet
+    /// @param idOrSlug  le slug du projet (Modrinth l'accepte directement comme
+    ///                  identifiant ; CurseForge doit le convertir en identifiant numérique)
     public record Parsed(Provider provider, RemoteModRepository.Type type, String idOrSlug) {
     }
 
-    /// Parses a CurseForge or Modrinth project URL.
+    /// Lit l'adresse d'un projet CurseForge ou Modrinth.
     ///
-    /// The input is trimmed and a `https://` scheme is added when missing so
-    /// users can paste a bare `modrinth.com/mod/sodium` host-and-path too.
+    /// Le texte est débarrassé de ses espaces, et le schéma `https://` ajouté s'il
+    /// manque : on peut aussi coller un simple `modrinth.com/mod/sodium`.
     ///
-    /// @param url the raw text the user pasted
-    /// @return the parsed project, or empty if the URL is not a recognized link
+    /// @param url le texte brut collé par l'utilisateur
+    /// @return le projet reconnu, ou vide si l'adresse n'est pas un lien reconnu
     public static Optional<Parsed> parse(@Nullable String url) {
         if (url == null) {
             return Optional.empty();
@@ -77,7 +79,7 @@ public final class ModRepositoryLink {
             return Optional.empty();
         }
 
-        // Allow pasting a bare host/path (no scheme) such as "modrinth.com/mod/sodium".
+        // Accepter un hôte et un chemin sans schéma, comme « modrinth.com/mod/sodium ».
         String normalized = trimmed.contains("://") ? trimmed : "https://" + trimmed;
 
         URI uri;
@@ -94,7 +96,7 @@ public final class ModRepositoryLink {
         }
         host = host.toLowerCase(Locale.ROOT);
 
-        // Drop empty segments produced by leading/trailing/duplicate slashes.
+        // Écarter les segments vides dus aux barres obliques en tête, en fin ou doublées.
         String[] segments = path.split("/");
         int count = 0;
         for (String segment : segments) {
@@ -112,7 +114,7 @@ public final class ModRepositoryLink {
         return Optional.empty();
     }
 
-    /// Parses a Modrinth path of the form `/{projectType}/{slug}`.
+    /// Lit un chemin Modrinth de la forme `/{projectType}/{slug}`.
     private static Optional<Parsed> parseModrinth(String @Nullable [] segments, int count) {
         if (count < 2) {
             return Optional.empty();
@@ -122,7 +124,7 @@ public final class ModRepositoryLink {
             case "modpack" -> RemoteModRepository.Type.MODPACK;
             case "resourcepack" -> RemoteModRepository.Type.RESOURCE_PACK;
             case "shader" -> RemoteModRepository.Type.SHADER_PACK;
-            default -> null; // datapack / plugin and anything else are unsupported
+            default -> null; // datapack, plugin et le reste ne sont pas pris en charge
         };
         if (type == null) {
             return Optional.empty();
@@ -130,9 +132,9 @@ public final class ModRepositoryLink {
         return Optional.of(new Parsed(Provider.MODRINTH, type, segments[1]));
     }
 
-    /// Parses a CurseForge path of the form `/minecraft/{category}/{slug}`.
+    /// Lit un chemin CurseForge de la forme `/minecraft/{category}/{slug}`.
     private static Optional<Parsed> parseCurseForge(String @Nullable [] segments, int count) {
-        // Expect: minecraft / {category} / {slug}
+        // Attendu : minecraft / {category} / {slug}
         if (count < 3 || !segments[0].equalsIgnoreCase("minecraft")) {
             return Optional.empty();
         }
@@ -142,7 +144,7 @@ public final class ModRepositoryLink {
             case "texture-packs" -> RemoteModRepository.Type.RESOURCE_PACK;
             case "shaders" -> RemoteModRepository.Type.SHADER_PACK;
             case "worlds" -> RemoteModRepository.Type.WORLD;
-            default -> null; // customization / data-packs / bukkit-plugins are unsupported
+            default -> null; // customization, data-packs et bukkit-plugins ne sont pas pris en charge
         };
         if (type == null) {
             return Optional.empty();

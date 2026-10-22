@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# verifier-paquets.sh — vérifie les archives produites par make-release.sh.
+# verifier-paquets.sh — vérifie les archives produites par fabriquer-paquets.sh.
 #
 # Usage : packaging/verifier-paquets.sh <version> <dossier>
 #

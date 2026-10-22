@@ -65,9 +65,9 @@ build() {
   # d'environnement CURSEFORGE_API_KEY, ou depuis un fichier local
   # ~/.config/cubox/curseforge.key (une seule ligne = la clé).
   # Sans clé, Cubox fonctionne quand même (Modrinth uniquement).
-  local cubox_cf_key_file="${XDG_CONFIG_HOME:-$HOME/.config}/cubox/curseforge.key"
-  if [ -z "${CURSEFORGE_API_KEY:-}" ] && [ -r "$cubox_cf_key_file" ]; then
-    CURSEFORGE_API_KEY="$(tr -d '[:space:]' < "$cubox_cf_key_file")"
+  local fichier_cle_curseforge="${XDG_CONFIG_HOME:-$HOME/.config}/cubox/curseforge.key"
+  if [ -z "${CURSEFORGE_API_KEY:-}" ] && [ -r "$fichier_cle_curseforge" ]; then
+    CURSEFORGE_API_KEY="$(tr -d '[:space:]' < "$fichier_cle_curseforge")"
   fi
   export CURSEFORGE_API_KEY="${CURSEFORGE_API_KEY:-}"
 

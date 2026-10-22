@@ -25,7 +25,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/// Tests for [ModRepositoryLink], which parses CurseForge / Modrinth project URLs.
+/// Tests de [ModRepositoryLink], qui lit les adresses de projets CurseForge et Modrinth.
 @NotNullByDefault
 public final class ModRepositoryLinkTest {
 
@@ -52,7 +52,7 @@ public final class ModRepositoryLinkTest {
 
     @Test
     public void modrinthExtraSegmentsAndQuery() {
-        // Trailing version path and query string should be ignored.
+        // Le chemin de version en fin d'adresse et les paramètres sont ignorés.
         assertParsed("https://modrinth.com/mod/sodium/version/mc1.20.1?foo=bar", ModRepositoryLink.Provider.MODRINTH, RemoteModRepository.Type.MOD, "sodium");
     }
 
@@ -78,15 +78,15 @@ public final class ModRepositoryLinkTest {
 
     @Test
     public void unsupportedOrInvalid() {
-        // Unknown hosts.
+        // Hôtes inconnus.
         assertTrue(ModRepositoryLink.parse("https://example.com/mod/sodium").isEmpty());
         assertTrue(ModRepositoryLink.parse("https://github.com/HMCL-dev/HMCL").isEmpty());
-        // Unsupported content types.
+        // Types de contenu non pris en charge.
         assertTrue(ModRepositoryLink.parse("https://modrinth.com/plugin/whatever").isEmpty());
         assertTrue(ModRepositoryLink.parse("https://modrinth.com/datapack/whatever").isEmpty());
         assertTrue(ModRepositoryLink.parse("https://www.curseforge.com/minecraft/bukkit-plugins/whatever").isEmpty());
         assertTrue(ModRepositoryLink.parse("https://www.curseforge.com/wow/addons/whatever").isEmpty());
-        // Malformed / empty.
+        // Mal formées ou vides.
         assertTrue(ModRepositoryLink.parse("").isEmpty());
         assertTrue(ModRepositoryLink.parse("   ").isEmpty());
         assertTrue(ModRepositoryLink.parse(null).isEmpty());

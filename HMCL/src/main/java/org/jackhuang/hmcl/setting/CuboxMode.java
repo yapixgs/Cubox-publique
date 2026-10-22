@@ -24,25 +24,27 @@ import org.jetbrains.annotations.Nullable;
 import static org.jackhuang.hmcl.setting.ConfigHolder.config;
 import static org.jackhuang.hmcl.setting.ConfigHolder.globalConfig;
 
-/// **ARCHIVED / hibernated.** Cubox currently ships as an offline-only launcher
-/// (see [Cubox#OFFLINE_ONLY]); this dual-mode system is not wired into the UI.
-/// It is kept on purpose so the online mode ("CuboxPO") can be revived later.
+/// **ARCHIVÉ / en sommeil.** Cubox est aujourd'hui distribué uniquement hors ligne
+/// (voir [Cubox#OFFLINE_ONLY]) ; ce système à deux modes n'est pas branché sur
+/// l'interface. Il est gardé exprès pour pouvoir réveiller le mode en ligne (« CuboxPO »).
 ///
-/// The two usage modes offered by Cubox.
+/// Les deux modes d'utilisation proposés par Cubox.
 ///
-/// Each mode carries its own brand accent color. Selecting a mode applies that
-/// accent to the launcher theme (see [#select]), which guarantees the Cubox
-/// identity is visible regardless of any theme color previously persisted in
-/// the configuration file.
+/// Chaque mode porte sa propre couleur d'accent de la marque. Choisir un mode applique
+/// cet accent au thème du lanceur (voir [#select]) : l'identité de Cubox reste visible
+/// quelle que soit la couleur de thème enregistrée auparavant dans la configuration.
+///
+/// Les noms des constantes sont écrits dans la configuration ([#select]) : contrat
+/// avec les fichiers de configuration existants, ils ne se renomment pas.
 public enum CuboxMode {
 
-    /// CuboxFO — fully offline mode: a simple username, no Microsoft account,
-    /// nothing sent to Microsoft. Uses the cyan brand accent.
+    /// CuboxFO — mode entièrement hors ligne : un simple pseudo, aucun compte Microsoft,
+    /// rien n'est envoyé à Microsoft. Accent cyan de la marque.
     OFFLINE(ThemeColor.DEFAULT, "cubox.mode.offline"),
 
-    /// CuboxPO — online / premium mode backed by a Microsoft account. Uses the
-    /// amber brand accent. Microsoft sign-in additionally requires an Azure
-    /// client id and stays disabled until one is embedded in the build.
+    /// CuboxPO — mode en ligne / premium, avec un compte Microsoft. Accent ambre de la
+    /// marque. La connexion Microsoft exige en plus un identifiant client Azure et reste
+    /// désactivée tant qu'aucun n'est intégré à la construction.
     ONLINE(ThemeColor.CUBOX_AMBER, "cubox.mode.online");
 
     private final @NotNull ThemeColor accent;
@@ -53,20 +55,20 @@ public enum CuboxMode {
         this.displayKey = displayKey;
     }
 
-    /// The brand accent color associated with this mode.
+    /// La couleur d'accent de la marque associée à ce mode.
     public @NotNull ThemeColor getAccent() {
         return accent;
     }
 
-    /// The i18n key of this mode's short display name (e.g. "CuboxFO — Offline").
-    /// The matching description key is this value suffixed with `.desc`.
+    /// La clé de traduction du nom court de ce mode (par exemple « CuboxFO — Hors ligne »).
+    /// La clé de sa description est cette valeur suivie de `.desc`.
     public @NotNull String getDisplayKey() {
         return displayKey;
     }
 
-    /// Parses a stored mode name (as written by [#select]), returning `null`
-    /// when the value is absent or unrecognized — e.g. on first run, before the
-    /// user has chosen a mode.
+    /// Lit un nom de mode enregistré (tel qu'écrit par [#select]) ; `null` quand la
+    /// valeur est absente ou inconnue — au premier lancement par exemple, avant que
+    /// l'utilisateur ait choisi un mode.
     public static @Nullable CuboxMode fromName(@Nullable String name) {
         if (name == null)
             return null;
@@ -78,32 +80,32 @@ public enum CuboxMode {
         }
     }
 
-    /// The mode currently selected in the configuration, or `null` if the user
-    /// has not chosen one yet (first run).
+    /// Le mode choisi dans la configuration, ou `null` si l'utilisateur n'en a pas
+    /// encore choisi (premier lancement).
     public static @Nullable CuboxMode current() {
         return fromName(config().getCuboxMode());
     }
 
-    /// Selects [mode]: persists it to the configuration, applies its brand
-    /// accent color, and updates the account flow ([#applyToSession]). Applying
-    /// the accent here is what makes the Cubox color visible even when an older
-    /// theme color was previously persisted.
+    /// Choisit [mode] : l'enregistre dans la configuration, applique sa couleur
+    /// d'accent et met à jour le parcours des comptes ([#applyToSession]). Appliquer
+    /// l'accent ici rend la couleur de Cubox visible même quand une ancienne couleur
+    /// de thème avait été enregistrée.
     public static void select(@NotNull CuboxMode mode) {
         config().setCuboxMode(mode.name());
         config().setThemeColor(mode.getAccent());
         applyToSession();
     }
 
-    /// Applies the current mode's behavior to the running session. Cubox is
-    /// offline-first, so offline accounts are always made available; the mode
-    /// then decides which account type the "add account" flow defaults to —
-    /// offline (a simple username) for [#OFFLINE], Microsoft for [#ONLINE].
+    /// Applique le comportement du mode choisi à la session en cours. Cubox est
+    /// d'abord hors ligne : les comptes hors ligne sont toujours disponibles ; le mode
+    /// décide ensuite du type de compte proposé par défaut à l'ajout d'un compte —
+    /// hors ligne (un simple pseudo) pour [#OFFLINE], Microsoft pour [#ONLINE].
     ///
-    /// Call this at startup so a mode chosen in a previous run still drives the
-    /// account flow (otherwise the Microsoft sign-in window could appear even
-    /// in offline mode).
+    /// À appeler au démarrage, pour qu'un mode choisi lors d'un lancement précédent
+    /// guide toujours le parcours des comptes (sinon la fenêtre de connexion
+    /// Microsoft pourrait apparaître même en mode hors ligne).
     public static void applyToSession() {
-        // Offline accounts are always available in Cubox (offline-first).
+        // Les comptes hors ligne sont toujours disponibles dans Cubox (d'abord hors ligne).
         globalConfig().setEnableOfflineAccount(true);
 
         CuboxMode mode = current();

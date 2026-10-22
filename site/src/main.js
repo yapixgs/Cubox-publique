@@ -1,5 +1,5 @@
 import { mount } from 'svelte'
 import App from './App.svelte'
 
-// No `loadConfig()`: the public page has no runtime setting, so the image serves no /config.json.
+// Pas de `loadConfig()` : la page publique n'a aucun réglage à l'exécution, l'image ne sert donc pas de /config.json.
 mount(App, { target: /** @type {HTMLElement} */ (document.getElementById('app')) })

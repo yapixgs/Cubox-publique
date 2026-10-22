@@ -48,11 +48,11 @@ import java.util.concurrent.CompletableFuture;
 import static org.jackhuang.hmcl.util.i18n.I18n.i18n;
 import static org.jackhuang.hmcl.util.logging.Logger.LOG;
 
-/// Unified, cross-instance overview of installed content (mods and worlds).
+/// Vue d'ensemble, toutes instances confondues, du contenu installé (mods et mondes).
 ///
-/// Instead of digging into each instance, this page lists every mod and every
-/// world from all instances in one place, each tagged with the instance it
-/// belongs to. Clicking an item jumps to that instance's detailed manager.
+/// Plutôt que de fouiller chaque instance, cette page liste au même endroit tous les
+/// mods et tous les mondes de toutes les instances, chacun marqué de son instance.
+/// Un clic sur un élément ouvre le gestionnaire détaillé de cette instance.
 public final class ContentOverviewPage extends DecoratorAnimatedPage implements DecoratorPage {
 
     private final ReadOnlyObjectWrapper<State> state =
@@ -91,7 +91,7 @@ public final class ContentOverviewPage extends DecoratorAnimatedPage implements 
         refresh();
     }
 
-    /// Reloads the mod and world lists from every instance.
+    /// Recharge les listes de mods et de mondes de toutes les instances.
     public void refresh() {
         loadInto(modsBox, true);
         loadInto(worldsBox, false);
@@ -103,7 +103,7 @@ public final class ContentOverviewPage extends DecoratorAnimatedPage implements 
                 .whenCompleteAsync((rows, exception) -> {
                     box.getChildren().clear();
                     if (exception != null) {
-                        LOG.warning("Failed to load content overview", exception);
+                        LOG.warning("Échec du chargement de la vue d'ensemble du contenu", exception);
                         box.getChildren().add(new Label(i18n("message.failed")));
                     } else if (rows.isEmpty()) {
                         box.getChildren().add(new Label(i18n("cubox.content.empty")));
@@ -144,7 +144,7 @@ public final class ContentOverviewPage extends DecoratorAnimatedPage implements 
                         rows.add(new Row(name, instanceLabel(profile, id), profile, id));
                     }
                 } catch (Exception e) {
-                    LOG.warning("Failed to read mods of instance " + id, e);
+                    LOG.warning("Échec de la lecture des mods de l'instance " + id, e);
                 }
             }
         }
@@ -163,7 +163,7 @@ public final class ContentOverviewPage extends DecoratorAnimatedPage implements 
                     World.getWorlds(repository.getSavesDirectory(id))
                             .forEach(world -> rows.add(new Row(world.getWorldName(), instanceLabel(profile, id), profile, id)));
                 } catch (Exception e) {
-                    LOG.warning("Failed to read worlds of instance " + id, e);
+                    LOG.warning("Échec de la lecture des mondes de l'instance " + id, e);
                 }
             }
         }
@@ -182,7 +182,7 @@ public final class ContentOverviewPage extends DecoratorAnimatedPage implements 
         return state.getReadOnlyProperty();
     }
 
-    /// One row of the overview: a content item and the instance it belongs to.
+    /// Une ligne de la vue d'ensemble : un élément de contenu et son instance.
     private static final class Row {
         final String name;
         final String instanceLabel;

@@ -1,26 +1,26 @@
 <script>
   import { onMount } from 'svelte'
-  import { MIRROR } from './lib/releases.js'
-  import TopBar from './lib/TopBar.svelte'
-  import HomePage from './pages/HomePage.svelte'
+  import { MIROIR } from './lib/versions.js'
+  import BarreDuHaut from './lib/BarreDuHaut.svelte'
+  import PageAccueil from './pages/PageAccueil.svelte'
 
-  // The socle Shell is not used: it loads the signed-in user, and this public page has no sign-in.
+  // Pas de Shell du socle : il charge la personne connectée, et cette page publique n'a pas de connexion.
   onMount(() => document.body.classList.add('cx-crt'))
 </script>
 
-<TopBar />
+<BarreDuHaut />
 <main>
-  <HomePage />
+  <PageAccueil />
 </main>
 <footer>
   <p>
     <b>Cubox</b> — fork non-officiel de <a href="https://github.com/HMCL-dev/HMCL" rel="noopener">HMCL</a>, sous licence
-    <a href="{MIRROR}/blob/main/LICENSE" rel="noopener">GPLv3</a>. Sans affiliation avec Mojang, Microsoft ou l'équipe HMCL.
+    <a href="{MIROIR}/blob/main/LICENSE" rel="noopener">GPLv3</a>. Sans affiliation avec Mojang, Microsoft ou l'équipe HMCL.
   </p>
   <p>
-    <a href={MIRROR} rel="noopener">Code source</a> ·
-    <a href="{MIRROR}/blob/main/docs/EULA.md" rel="noopener">Conditions d'utilisation</a> ·
-    <a href="{MIRROR}/blob/main/docs/ROADMAP.md" rel="noopener">Feuille de route</a> ·
+    <a href={MIROIR} rel="noopener">Code source</a> ·
+    <a href="{MIROIR}/blob/main/docs/EULA.md" rel="noopener">Conditions d'utilisation</a> ·
+    <a href="{MIROIR}/blob/main/docs/ROADMAP.md" rel="noopener">Feuille de route</a> ·
     hébergé par Cloudox
   </p>
 </footer>

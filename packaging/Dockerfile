@@ -24,7 +24,7 @@ ENV GRADLE_OPTS="-Dorg.gradle.daemon=false"
 FROM outils AS verification
 RUN set -eu; \
     for script in packaging/installer/install.sh packaging/installer/uninstall.sh \
-                  packaging/make-release.sh packaging/arch/install-arch.sh \
+                  packaging/fabriquer-paquets.sh packaging/arch/install-arch.sh \
                   packaging/verifier-paquets.sh packaging/publier-forge.sh \
                   packaging/miroir.sh; do \
       bash -n "$script"; \
@@ -42,7 +42,7 @@ RUN ./gradlew --stacktrace test
 FROM outils AS paquets
 ARG VERSION=0.0.0-dev
 # VERSION_ROOT fixe le numéro affiché dans la fenêtre du lanceur (HMCL/build.gradle.kts).
-RUN VERSION_ROOT="${VERSION}" ./packaging/make-release.sh "${VERSION}" \
+RUN VERSION_ROOT="${VERSION}" ./packaging/fabriquer-paquets.sh "${VERSION}" \
  && ./packaging/verifier-paquets.sh "${VERSION}" dist
 
 FROM scratch AS paquets-sortie
