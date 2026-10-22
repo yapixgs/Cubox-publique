@@ -45,10 +45,11 @@ jobs:
           git -c http.extraheader="$entete" fetch -q --tags origin main
           git checkout -q FETCH_HEAD
 
+      # Jeton de compte pour télécharger et ajouter les pièces jointes de la version.
       - name: Publier sur le miroir
         run: just miroir "${{ github.event.inputs.version }}"
         env:
-          FORGEJO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORGEJO_TOKEN: ${{ secrets.CLOUDOX_BOT_TOKEN }}
           GH_MIRROR_TOKEN: ${{ secrets.GH_MIRROR_TOKEN }}
           ARCH_SIGNING_KEY: ${{ secrets.ARCH_SIGNING_KEY }}
 

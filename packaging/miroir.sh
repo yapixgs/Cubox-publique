@@ -47,6 +47,12 @@ rm -rf dist depot && mkdir -p dist depot
 jq -r '.assets[] | [.name, .browser_download_url] | @tsv' <<<"$release" \
   | while IFS=$'\t' read -r nom adresse; do
       case "$nom" in *.pkg.tar.zst) continue ;; esac
+      # Le jeton de compte ne part que vers la forge : une pièce jointe externe
+      # (lien vers un autre hôte) le recevrait dans son en-tête.
+      case "$adresse" in
+        "$forge/$depot/releases/download/"*) ;;
+        *) echo "pièce jointe hors de la forge refusée : $nom" >&2; exit 1 ;;
+      esac
       echo "  ↓ $nom"
       curl -fsSL -H "$entete" -o "dist/$nom" "$adresse"
     done
@@ -62,8 +68,10 @@ construire_arch() {
   chown -R constructeur:constructeur "$racine"
   # `env -u GITHUB_SHA` : le runner l'exporte, et HMCL/build.gradle.kts en ferait
   # « 1.4.0.unofficial-1b98053 » — le numéro affiché dans la fenêtre du lanceur.
+  # `su` transmet l'environnement : les secrets n'ont rien à faire dans la construction.
   su constructeur -c "cd '$racine/packaging/aur' && rm -f ./*.pkg.tar.zst \
-    && env -u GITHUB_SHA -u BUILD_NUMBER VERSION_ROOT='$version' makepkg -Cf --noconfirm" \
+    && env -u GITHUB_SHA -u BUILD_NUMBER -u FORGEJO_TOKEN -u GH_TOKEN -u GH_MIRROR_TOKEN \
+       -u ARCH_SIGNING_KEY VERSION_ROOT='$version' makepkg -Cf --noconfirm" \
     || return 1
   local jar
   jar="$(find packaging/aur -name 'Cubox-*.jar' | head -n1)"
