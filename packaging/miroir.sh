@@ -63,7 +63,8 @@ packaging/verifier-paquets.sh "$version" dist
 # aucun nom. Il est signé parce que pacman installe en root : le HTTPS prouve qu'on parle
 # au bon serveur, pas QUI a fabriqué le paquet.
 construire_arch() {
-  # makepkg de nixpkgs : sa configuration est celle de son paquet, -d parce que les
+  # makepkg de nixpkgs : sa configuration est celle de son paquet (PKGEXT y vaut .pkg.tar.gz :
+  # on garde le .pkg.tar.zst d'Arch, celui que pacman et le dépôt attendent), -d parce que les
   # dépendances (jdk21-openjdk, git) ne sont pas des paquets pacman ici mais sont dans le PATH.
   # `env -u GITHUB_SHA` : le runner l'exporte, et HMCL/build.gradle.kts en ferait
   # « 1.4.0.unofficial-1b98053 » — le numéro affiché dans la fenêtre du lanceur.
@@ -74,6 +75,7 @@ construire_arch() {
   ( cd "$racine/packaging/aur" && rm -f ./*.pkg.tar.zst \
     && env -u GITHUB_SHA -u BUILD_NUMBER -u FORGEJO_TOKEN -u JETON_FORGE -u GH_TOKEN \
        -u GH_MIRROR_TOKEN -u ARCH_SIGNING_KEY MAKEPKG_CONF="$configuration" CUBOX_JAVA_HOME="$java" \
+       PKGEXT=.pkg.tar.zst \
        VERSION_ROOT="$version" makepkg -Cf -d --noconfirm ) \
     || return 1
   local jar

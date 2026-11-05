@@ -47,9 +47,8 @@ jobs:
         env:
           TOKEN: ${{ secrets.CLOUDOX_BOT_TOKEN }}
           VERSION: ${{ github.event.inputs.version }}
+        # Le runner n'a pas jq : le corps JSON vient de Python.
         run: |
-          jq -n --arg t "Échec du miroir public — $VERSION" \
-            --arg b "Le workflow Miroir a échoué pour $VERSION : $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_NUMBER" \
-            '{title: $t, body: $b}' \
+          python3 -c 'import json, os; print(json.dumps({"title": "Échec du miroir public — " + os.environ["VERSION"], "body": "Le workflow Miroir a échoué pour " + os.environ["VERSION"] + " : " + os.environ["GITHUB_SERVER_URL"] + "/" + os.environ["GITHUB_REPOSITORY"] + "/actions/runs/" + os.environ["GITHUB_RUN_NUMBER"]}))' \
           | curl -sS -X POST -H "Authorization: token $TOKEN" -H 'Content-Type: application/json' \
               -d @- "$GITHUB_SERVER_URL/api/v1/repos/$GITHUB_REPOSITORY/issues" >/dev/null
