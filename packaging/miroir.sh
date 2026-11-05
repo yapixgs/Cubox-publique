@@ -143,10 +143,21 @@ if gh release view "$tag" --repo "$miroir" >/dev/null 2>&1; then
 else
   gh release create "$tag" --repo "$miroir" --title "Cubox $version" --notes-file "$notes"
 fi
-gh release upload "$tag" dist/* --repo "$miroir" --clobber
+# Juste après sa création, l'API de GitHub peut ne pas encore trouver la release par son
+# tag (« release not found ») : quelques essais.
+televerser() {
+  local essai
+  for essai in 1 2 3 4 5 6; do
+    gh release upload "$tag" "$@" --repo "$miroir" --clobber && return 0
+    echo "téléversement refusé (essai $essai), nouvel essai dans 10 s" >&2
+    sleep 10
+  done
+  return 1
+}
+televerser dist/*
 if [ -n "$(ls depot)" ]; then
   # Seul le dépôt signé part sur GitHub : le paquet brut y serait un doublon renommé.
-  gh release upload "$tag" depot/* --repo "$miroir" --clobber
+  televerser depot/*
   attendus="$(ls depot)"
   # `--clobber` remplace un asset de même nom, il ne retire pas les périmés.
   gh release view "$tag" --repo "$miroir" --json assets --jq '.assets[].name' \
@@ -158,7 +169,7 @@ if [ -n "$(ls depot)" ]; then
         fi
       done
 elif [ -n "$paquet" ]; then
-  gh release upload "$tag" "$paquet" --repo "$miroir" --clobber
+  televerser "$paquet"
 fi
 
 # Le code aussi : le lanceur et le site renvoient leurs liens publics (README, guide,
