@@ -2,18 +2,19 @@
 #
 # miroir.sh — publie une version de Cubox sur le miroir public GitHub (ADR-0041 d'infra).
 #
-# Usage : packaging/miroir.sh <vX.Y.Z>     (dans le conteneur Arch du workflow « Miroir »)
+# Usage : packaging/miroir.sh <vX.Y.Z>     (workflow « Miroir », via `just miroir`)
 #
 # La forge est la source de vérité ; GitHub est le canal de distribution : la forge exige
 # une connexion, même pour un dépôt public (404 anonyme sur l'API, la page et les assets).
 # Sans miroir, PERSONNE ne peut télécharger Cubox.
 #
 #   1. récupère les paquets Windows et Linux joints à la Release de la forge (livraison) ;
-#   2. construit le paquet pacman et le dépôt pacman signé (makepkg n'existe que sur Arch) ;
+#   2. construit le paquet pacman et le dépôt pacman signé (makepkg et repo-add de pacman,
+#      sous fakeroot : ni Arch ni root) ;
 #   3. publie la Release et le code sur le miroir, retire les paquets pacman périmés ;
 #   4. vérifie, SANS authentification, que tout est réellement téléchargeable.
 #
-# Variables : FORGEJO_TOKEN (lecture/écriture de la Release), GH_MIRROR_TOKEN (miroir),
+# Variables : JETON_FORGE (lecture/écriture de la Release), GH_MIRROR_TOKEN (miroir),
 # ARCH_SIGNING_KEY (clé GPG en base64 ; sans elle, le dépôt pacman n'est pas publié).
 set -euo pipefail
 
@@ -23,26 +24,25 @@ miroir="${MIROIR:-yapixgs/Cubox-publique}"
 forge="${GITHUB_SERVER_URL:-https://forge.oxitablock.com}"
 depot="${GITHUB_REPOSITORY:-Cloudox/Cubox}"
 api="$forge/api/v1/repos/$depot"
-: "${FORGEJO_TOKEN:?FORGEJO_TOKEN est requis}"
+: "${JETON_FORGE:?JETON_FORGE est requis}"
 if [ -z "${GH_MIRROR_TOKEN:-}" ]; then
   echo "secret GH_MIRROR_TOKEN absent : sans miroir, personne ne peut télécharger Cubox." >&2
   exit 1
 fi
 export GH_TOKEN="$GH_MIRROR_TOKEN"
-entete="Authorization: token $FORGEJO_TOKEN"
+entete="Authorization: token $JETON_FORGE"
 racine="$(pwd)"
 arch_en_echec=""
 
-# Construire le code de la version, pas celui de `main` au moment du lancement. Le dépôt
-# change de propriétaire pour makepkg : git doit continuer de l'accepter.
-git config --global --add safe.directory '*'
+# Construire le code de la version, pas celui de `main` au moment du lancement.
 git checkout -q "refs/tags/$tag"
 
 # ── 1. Les paquets de la Release de la forge ────────────────────────────────────────
 release="$(curl -fsS -H "$entete" "$api/releases/tags/$tag")"
 id="$(jq -r '.id' <<<"$release")"
-jq -r '.body // ""' <<<"$release" > /tmp/notes.md
-[ -s /tmp/notes.md ] || echo "Cubox $version." > /tmp/notes.md
+notes="$(mktemp)"
+jq -r '.body // ""' <<<"$release" > "$notes"
+[ -s "$notes" ] || echo "Cubox $version." > "$notes"
 rm -rf dist depot && mkdir -p dist depot
 jq -r '.assets[] | [.name, .browser_download_url] | @tsv' <<<"$release" \
   | while IFS=$'\t' read -r nom adresse; do
@@ -63,15 +63,18 @@ packaging/verifier-paquets.sh "$version" dist
 # aucun nom. Il est signé parce que pacman installe en root : le HTTPS prouve qu'on parle
 # au bon serveur, pas QUI a fabriqué le paquet.
 construire_arch() {
-  # makepkg refuse de tourner en root, sans option pour passer outre.
-  id -u constructeur >/dev/null 2>&1 || useradd -m constructeur
-  chown -R constructeur:constructeur "$racine"
+  # makepkg de nixpkgs : sa configuration est celle de son paquet, -d parce que les
+  # dépendances (jdk21-openjdk, git) ne sont pas des paquets pacman ici mais sont dans le PATH.
   # `env -u GITHUB_SHA` : le runner l'exporte, et HMCL/build.gradle.kts en ferait
   # « 1.4.0.unofficial-1b98053 » — le numéro affiché dans la fenêtre du lanceur.
-  # `su` transmet l'environnement : les secrets n'ont rien à faire dans la construction.
-  su constructeur -c "cd '$racine/packaging/aur' && rm -f ./*.pkg.tar.zst \
-    && env -u GITHUB_SHA -u BUILD_NUMBER -u FORGEJO_TOKEN -u GH_TOKEN -u GH_MIRROR_TOKEN \
-       -u ARCH_SIGNING_KEY VERSION_ROOT='$version' makepkg -Cf --noconfirm" \
+  # Les secrets n'ont rien à faire dans la construction.
+  local configuration java
+  configuration="$(dirname "$(dirname "$(readlink -f "$(command -v makepkg)")")")/etc/makepkg.conf"
+  java="$(dirname "$(dirname "$(readlink -f "$(command -v java)")")")"
+  ( cd "$racine/packaging/aur" && rm -f ./*.pkg.tar.zst \
+    && env -u GITHUB_SHA -u BUILD_NUMBER -u FORGEJO_TOKEN -u JETON_FORGE -u GH_TOKEN \
+       -u GH_MIRROR_TOKEN -u ARCH_SIGNING_KEY MAKEPKG_CONF="$configuration" CUBOX_JAVA_HOME="$java" \
+       VERSION_ROOT="$version" makepkg -Cf -d --noconfirm ) \
     || return 1
   local jar
   jar="$(find packaging/aur -name 'Cubox-*.jar' | head -n1)"
@@ -89,8 +92,10 @@ signer_depot() {
   # pacman télécharge le nom inscrit dans la base : on renomme nous-mêmes.
   sain="$(basename "$paquet" | tr ':' '-')"
   cp "$paquet" "depot/$sain"
-  export GNUPGHOME=/tmp/gnupg
-  mkdir -p "$GNUPGHOME" && chmod 700 "$GNUPGHOME"
+  # Trousseau temporaire : le runner garde son dossier personnel d'un job à l'autre.
+  GNUPGHOME="$(mktemp -d)"
+  export GNUPGHOME
+  trap 'rm -rf "$GNUPGHOME"' EXIT
   printf '%s' "$ARCH_SIGNING_KEY" | base64 -d | gpg --batch --quiet --import
   empreinte="$(gpg --batch --with-colons --list-secret-keys | awk -F: '/^fpr:/ {print $10; exit}')"
   echo "clé de signature : $empreinte"
@@ -132,9 +137,9 @@ fi
 
 # ── 3. La Release et le code sur le miroir ───────────────────────────────────────────
 if gh release view "$tag" --repo "$miroir" >/dev/null 2>&1; then
-  gh release edit "$tag" --repo "$miroir" --notes-file /tmp/notes.md
+  gh release edit "$tag" --repo "$miroir" --notes-file "$notes"
 else
-  gh release create "$tag" --repo "$miroir" --title "Cubox $version" --notes-file /tmp/notes.md
+  gh release create "$tag" --repo "$miroir" --title "Cubox $version" --notes-file "$notes"
 fi
 gh release upload "$tag" dist/* --repo "$miroir" --clobber
 if [ -n "$(ls depot)" ]; then

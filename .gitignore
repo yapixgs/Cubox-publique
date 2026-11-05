@@ -94,3 +94,4 @@ language-subtag-registry
 
 # Dépôt pacman construit par packaging/miroir.sh
 /depot/
+.construction/

@@ -4,16 +4,21 @@
 # se construit avec Gradle et son site n'est ni un `backend` ni un `frontend` du gabarit
 # (dérogations R3.2 et R4.3 de cloudox.toml). Les recettes ci-dessous REMPLACENT donc
 # celles de cloudox.just du même nom, en appelant toujours les tâches canoniques pour le
-# site (site/outil_normes.py) et Docker pour le lanceur (packaging/Dockerfile).
+# site (site/outil_normes.py) et les outils du lanceur (JDK 21, NSIS…) pris dans nixpkgs,
+# aux versions du flake.lock du dépôt : la CI tourne sans conteneur (normes v3).
 set allow-duplicate-recipes
 
 import 'cloudox.just'
 
 # L'outil normes, avec le site déclaré comme unité.
-normes-site := "\"$(dirname \"$(readlink -f \"$(command -v " + normes + ")\")\")/python\" site/outil_normes.py"
+normes-site := "normes-python site/outil_normes.py"
 
-# Construire une cible du lanceur dans Docker (packaging/Dockerfile).
-lanceur := "docker buildx build --progress plain --file packaging/Dockerfile"
+# Les outils du lanceur : JDK 21 (version testée), NSIS pour l'installeur Windows, shellcheck.
+lanceur := "nix shell --inputs-from . nixpkgs#jdk21 nixpkgs#nsis nixpkgs#shellcheck nixpkgs#zip nixpkgs#unzip --command"
+
+# Scripts du packaging vérifiés par bash -n ; ceux de la liste « shellcheck » aussi par shellcheck.
+scripts-packaging := "packaging/installer/install.sh packaging/installer/uninstall.sh packaging/fabriquer-paquets.sh packaging/arch/install-arch.sh packaging/verifier-paquets.sh packaging/publier-forge.sh packaging/miroir.sh"
+scripts-shellcheck := "packaging/installer/install.sh packaging/installer/uninstall.sh packaging/arch/install-arch.sh packaging/verifier-paquets.sh packaging/publier-forge.sh packaging/miroir.sh"
 
 # Le site sur http://127.0.0.1:5181, rechargé à chaque modification (R11.7).
 dev:
@@ -27,12 +32,14 @@ dev-image:
 # Analyse statique : secrets, site (svelte-check), scripts shell et installeur Windows (R8.3).
 qualite:
     {{normes-site}} tache qualite
-    {{lanceur}} --target verification .
+    for script in {{scripts-packaging}}; do bash -n "$script"; done
+    {{lanceur}} shellcheck -S warning {{scripts-shellcheck}}
+    cd packaging/installer && {{lanceur}} makensis -V2 -DVERSION=ci cubox.nsi && test -s Installer.exe
 
 # Tests du site (vitest) et du lanceur (JUnit) (R8.3).
 tests:
     {{normes-site}} tache tests
-    {{lanceur}} --target tests .
+    GRADLE_OPTS="-Dorg.gradle.daemon=false" {{lanceur}} ./gradlew --stacktrace test
 
 # Parcours du site dans le navigateur, API simulée (R8.3).
 e2e:
@@ -41,14 +48,14 @@ e2e:
 # Image du site (Trivy, test de fumée) et paquets du lanceur, sans rien publier (R8.3).
 construction:
     {{normes-site}} tache construction
-    site/fumee.sh {{IMAGE_SITE}}:ci
+    site/fumee.sh
     just paquets 0.0.0-ci
 
 # Construire les paquets Windows et Linux du lanceur dans dist/, vérifiés dans le build.
 paquets version:
     rm -rf dist
-    {{lanceur}} --target paquets-sortie --build-arg VERSION={{version}} \
-      --output type=local,dest=dist .
+    GRADLE_OPTS="-Dorg.gradle.daemon=false" VERSION_ROOT="{{version}}" {{lanceur}} ./packaging/fabriquer-paquets.sh "{{version}}"
+    {{lanceur}} ./packaging/verifier-paquets.sh "{{version}}" dist
     ls -lh dist
 
 # Publier l'image du site ; un tag publié est immuable (R8.5, R9.6).
@@ -65,8 +72,7 @@ publication version:
 deploiement version:
     {{normes-site}} deployer {{version}}
 
-# Miroir public GitHub d'une version publiée (workflow Miroir, ADR-0041 d'infra).
+# Miroir public GitHub d'une version publiée (workflow Miroir, ADR-0041 d'infra). makepkg et
+# repo-add viennent de pacman (nixpkgs), sous fakeroot : pas besoin d'Arch ni de root.
 miroir version:
-    packaging/miroir.sh {{version}}
-
-IMAGE_SITE := "forge.oxitablock.com/cloudox/cubox-site"
+    nix shell --inputs-from . nixpkgs#jdk21 nixpkgs#pacman nixpkgs#fakeroot nixpkgs#zstd nixpkgs#libarchive nixpkgs#gh nixpkgs#unzip --command packaging/miroir.sh {{version}}

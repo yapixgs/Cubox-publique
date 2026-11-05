@@ -57,8 +57,9 @@ pkgver() {
 build() {
   cd "$srcdir/$pkgname"
   chmod +x ./gradlew
-  # Force JDK 21 (version testée) plutôt que le JDK système éventuellement trop récent
-  export JAVA_HOME=/usr/lib/jvm/java-21-openjdk
+  # Force JDK 21 (version testée) plutôt que le JDK système éventuellement trop récent.
+  # CUBOX_JAVA_HOME : le JDK 21 de la CI (nixpkgs), hors d'Arch.
+  export JAVA_HOME="${CUBOX_JAVA_HOME:-/usr/lib/jvm/java-21-openjdk}"
 
   # Clé API CurseForge (active le navigateur CurseForge dans Cubox).
   # La clé N'EST PAS dans le dépôt : on la lit depuis la variable

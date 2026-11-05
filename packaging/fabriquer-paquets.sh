@@ -33,7 +33,7 @@ set -euo pipefail
 
 # --- Réglages ---------------------------------------------------------------
 # JRE embarqué, épinglé avec ses sommes de contrôle (R8.4, R9.5) : la même version donne
-# les mêmes paquets. Même version que l'image de construction (packaging/Dockerfile).
+# les mêmes paquets. Même version majeure que le JDK de construction (jdk21 de nixpkgs).
 readonly JRE_VERSION="21.0.12.1+1"
 readonly JRE_FICHIER="${JRE_VERSION/+/_}"
 readonly TEMURIN="https://github.com/adoptium/temurin21-binaries/releases/download/jdk-${JRE_VERSION/+/%2B}"

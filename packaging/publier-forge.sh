@@ -12,11 +12,13 @@ set -euo pipefail
 
 tag="$1"
 dossier="$2"
-: "${FORGEJO_TOKEN:?FORGEJO_TOKEN est requis}"
+# Le jeton du bot (JETON_FORGE) : sur le runner blue, FORGEJO_TOKEN est le jeton du job,
+# que l'API de la forge refuse.
+: "${JETON_FORGE:?JETON_FORGE est requis}"
 forge="${GITHUB_SERVER_URL:-https://forge.oxitablock.com}"
 depot="${GITHUB_REPOSITORY:-Cloudox/Cubox}"
 api="$forge/api/v1/repos/$depot"
-entete="Authorization: token $FORGEJO_TOKEN"
+entete="Authorization: token $JETON_FORGE"
 
 json() { python3 -c "import json, sys; print(json.load(sys.stdin)$1)"; }
 

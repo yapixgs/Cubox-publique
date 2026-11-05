@@ -1,4 +1,5 @@
-# L'image ne copie que dist/ et la configuration nginx (Dockerfile).
+# L'image ne copie que dist/, la configuration nginx et ce que la CI a préparé (Dockerfile).
 *
 !dist/
 !nginx/
+!.construction/

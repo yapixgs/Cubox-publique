@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node preparer-nginx.mjs",
     "check": "svelte-check --fail-on-warnings --tsconfig ./jsconfig.json",
     "test": "vitest run",
     "e2e": "playwright test"

@@ -1,0 +1,4 @@
+# brotli-libs de l'image nginx officielle (alpine) : pas encore corrigé dans l'image. nginx
+# n'y décode aucun flux brotli reçu (pas de module brotli, page statique et relais JSON) :
+# la faille n'est pas atteignable. À revoir à la prochaine image.
+CVE-2026-111497 exp:2026-12-15

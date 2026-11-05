@@ -3,7 +3,8 @@
 # La forge refuse l'accès anonyme : chaque version doit aussi partir sur
 # github.com/yapixgs/Cubox-publique, sinon personne ne peut la télécharger. Ce travail
 # exige deux secrets que les workflows canoniques ne transmettent pas (GH_MIRROR_TOKEN,
-# ARCH_SIGNING_KEY) et un conteneur Arch (makepkg) : d'où ce troisième workflow.
+# ARCH_SIGNING_KEY) : d'où ce troisième workflow. Il tourne sur le runner blue, sans
+# conteneur : makepkg vient de pacman (nixpkgs), voir `just miroir`.
 #
 # Lancé par la livraison (`just publication` → packaging/publier-forge.sh) une fois la
 # Release de la forge complète ; à la main pour republier une version. Toute la logique
@@ -25,31 +26,18 @@ concurrency:
 jobs:
   miroir:
     name: miroir
-    runs-on: cloudox
-    container:
-      image: docker.io/library/archlinux:base-devel-20261018.0.612668@sha256:0ccc8b2e55c0c26a6e501e892cc6b1cdea7cfdf77e432941320148b4dabd2bff
+    runs-on: blue
     steps:
-      - name: Outils
-        run: pacman -Syu --noconfirm --needed git jq curl unzip github-cli jdk21-openjdk just gnupg
-
       # Clone complet : le paquet pacman tire sa version et son code des tags.
-      - name: Récupérer le dépôt
-        env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -eu
-          git init -q .
-          git config --global --add safe.directory "$PWD"
-          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
-          entete="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
-          git -c http.extraheader="$entete" fetch -q --tags origin main
-          git checkout -q FETCH_HEAD
+      - uses: actions/checkout@v4.2.2
+        with: {fetch-depth: 0}
 
-      # Jeton de compte pour télécharger et ajouter les pièces jointes de la version.
+      # Jeton du bot pour télécharger et ajouter les pièces jointes de la version (le jeton
+      # du job est refusé par l'API depuis ce runner).
       - name: Publier sur le miroir
-        run: just miroir "${{ github.event.inputs.version }}"
+        run: nix develop --command just miroir "${{ github.event.inputs.version }}"
         env:
-          FORGEJO_TOKEN: ${{ secrets.CLOUDOX_BOT_TOKEN }}
+          JETON_FORGE: ${{ secrets.CLOUDOX_BOT_TOKEN }}
           GH_MIRROR_TOKEN: ${{ secrets.GH_MIRROR_TOKEN }}
           ARCH_SIGNING_KEY: ${{ secrets.ARCH_SIGNING_KEY }}
 
@@ -57,7 +45,7 @@ jobs:
       - name: Signaler l'échec
         if: failure()
         env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOKEN: ${{ secrets.CLOUDOX_BOT_TOKEN }}
           VERSION: ${{ github.event.inputs.version }}
         run: |
           jq -n --arg t "Échec du miroir public — $VERSION" \

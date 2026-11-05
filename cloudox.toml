@@ -25,6 +25,5 @@ composants = []
 # pacman) : la forge et son wiki exigent une connexion. Le reste est dans le wiki.
 "R5.1" = "permanent: docs/ publique servie par le miroir GitHub, liée par le lanceur distribué"
 # Troisième workflow, miroir.yml : la publication sur le miroir GitHub exige des secrets
-# (GH_MIRROR_TOKEN, ARCH_SIGNING_KEY) que les workflows canoniques ne transmettent pas, et
-# un conteneur Arch (makepkg).
+# (GH_MIRROR_TOKEN, ARCH_SIGNING_KEY) que les workflows canoniques ne transmettent pas.
 "R8.1" = "permanent: miroir.yml publie sur le miroir GitHub (ADR-0041), secrets propres"

@@ -1,4 +1,5 @@
 # Référentiel Cloudox (R8.1, R8.3, R8.6) — fichier canonique, ne pas modifier : `normes synchro` le réécrit.
+# Les jobs tournent sur le runner blue, sans conteneur : l'environnement vient de flake.nix (R8.6).
 name: CI
 
 on:
@@ -10,9 +11,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DOCKER_HOST: tcp://172.17.0.1:2375
-  FORGEJO_TOKEN: ${{ github.token }}
-  # Lecture des registres de paquets Cloudox (cloudox-socle, @cloudox/socle).
+  # Le jeton du bot pour l'API de la forge (Releases, PR de mise en prod, signalements).
+  # Pas FORGEJO_TOKEN : le runner blue l'écrase avec le jeton du job, refusé par l'API.
+  JETON_FORGE: ${{ secrets.CLOUDOX_BOT_TOKEN }}
+  # Lecture des registres de paquets Cloudox (cloudox-normes, cloudox-socle, @cloudox/socle).
   UV_INDEX_CLOUDOX_USERNAME: ${{ secrets.FORGEJO_REGISTRY_USER }}
   UV_INDEX_CLOUDOX_PASSWORD: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}
   CLOUDOX_NPM_TOKEN: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}
@@ -20,61 +22,39 @@ env:
 jobs:
   conformite:
     name: conformite
-    runs-on: cloudox
-    container:
-      image: forge.oxitablock.com/cloudox/normes:v2.0.0
-      credentials:
-        username: ${{ secrets.FORGEJO_REGISTRY_USER }}
-        password: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}
+    runs-on: blue
     steps:
       - uses: actions/checkout@v4.2.2
         with: {fetch-depth: 0}
-      - run: just conformite
+      - run: nix develop --command just conformite
 
   qualite:
     name: qualite
-    runs-on: cloudox
-    container:
-      image: forge.oxitablock.com/cloudox/normes:v2.0.0
-      credentials:
-        username: ${{ secrets.FORGEJO_REGISTRY_USER }}
-        password: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}
+    runs-on: blue
     steps:
       - uses: actions/checkout@v4.2.2
-      - run: just qualite
+      - run: nix develop --command just qualite
 
   tests:
     name: tests
-    runs-on: cloudox
-    container:
-      image: forge.oxitablock.com/cloudox/normes:v2.0.0
-      credentials:
-        username: ${{ secrets.FORGEJO_REGISTRY_USER }}
-        password: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}
+    runs-on: blue
     steps:
       - uses: actions/checkout@v4.2.2
-      - run: just tests
+      - run: nix develop --command just tests
 
   e2e:
     name: e2e
-    runs-on: cloudox
-    container:
-      image: forge.oxitablock.com/cloudox/normes:v2.0.0
-      credentials:
-        username: ${{ secrets.FORGEJO_REGISTRY_USER }}
-        password: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}
+    runs-on: blue
     steps:
       - uses: actions/checkout@v4.2.2
-      - run: just e2e
+      - run: nix develop --command just e2e
 
   construction:
     name: construction
-    runs-on: cloudox
-    container:
-      image: forge.oxitablock.com/cloudox/normes:v2.0.0
-      credentials:
-        username: ${{ secrets.FORGEJO_REGISTRY_USER }}
-        password: ${{ secrets.FORGEJO_REGISTRY_TOKEN }}
+    runs-on: blue
     steps:
       - uses: actions/checkout@v4.2.2
-      - run: just construction
+      - run: nix develop --command just construction
+        env:
+          REGISTRY_USER: ${{ secrets.ZOT_REGISTRY_USER }}
+          REGISTRY_TOKEN: ${{ secrets.ZOT_REGISTRY_TOKEN }}
